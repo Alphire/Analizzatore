@@ -9,8 +9,9 @@ import numpy as np
 import seaborn as sn
 
 
+#NOTA: Non funziona sulla console windows
 '''Settings per i colori dell'output'''
-class bcolors:
+'''class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKCYAN = '\033[96m'
@@ -20,6 +21,19 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+    '''
+
+'''Dato che non funziona con il terminal'''
+class bcolors:
+    HEADER = ''
+    OKBLUE = ''
+    OKCYAN = ''
+    OKGREEN = ''
+    WARNING = ''
+    FAIL = ''
+    ENDC = ''
+    BOLD = ''
+    UNDERLINE = ''
 
 
 '''Metodo per aprire i file csv'''
@@ -229,8 +243,7 @@ def creaPermutazioni(serie,labels_dati,giorni_analisi):
                     z += 1
             except:
                 pass
-        # Per avere gli assi:
-        # print(matrice[labels_dati[0]])
+    exit()
 
 
 def analizzaDati(serie, tipo_analisi, labels_dati):
@@ -283,6 +296,7 @@ def autoInserimentoDati():
 
 
 def starter(autoinserimento):
+    tipo_metodi = ["Matrice", "Analizzatore", "Permutazioni"]
     flag_inserisci_file = 0
     dati = []
     solo_y = []
@@ -307,16 +321,34 @@ def starter(autoinserimento):
             else:
                 flag_inserisci_file = 1
     confronta_tempi(dati)
-    # Crea matrice di grafici
-    '''num_graf = int(input(bcolors.HEADER + "Inserisci numero grafici: " + bcolors.ENDC))
-    creaMatriceGrafici(dati[0],dati[1],labels_dati,num_graf)'''
-    # Analizza dati
-    '''tipo_analisi = input(str(bcolors.HEADER + "Inserisci che tipo di analisi si vuole fare: " + bcolors.ENDC))
-    analizzaDati(dati, tipo_analisi, labels_dati)'''
-    # Crea grafici per ogni permutazione
-    num_giorni_analisi = int(input(bcolors.HEADER + "Inserisci il numero di giorni di analisi: " + bcolors.ENDC))
-    creaPermutazioni(dati,labels_dati,num_giorni_analisi)
+    tipo_metodo = input("Che metodo vuoi usare?\n%s\n"  %tipo_metodi)
+    for i in range(len(tipo_metodi)):
+        if tipo_metodo == "Matrice" or tipo_metodo == "matrice":
+            # Crea matrice di grafici
+            num_graf = int(input(bcolors.HEADER + "Inserisci numero grafici: " + bcolors.ENDC))
+            creaMatriceGrafici(dati[0],dati[1],labels_dati,num_graf)
+        elif tipo_metodo == "Analizzatore" or tipo_metodo == "analizzatore":
+            # Analizza dati
+            tipo_analisi = input(str(bcolors.HEADER + "Inserisci che tipo di analisi si vuole fare: " + bcolors.ENDC))
+            analizzaDati(dati, tipo_analisi, labels_dati)
+        elif tipo_metodo == "Permutazioni" or "permutazioni":
+            # Crea grafici per ogni permutazione
+            num_giorni_analisi = int(input(bcolors.HEADER + "Inserisci il numero di giorni di analisi: " + bcolors.ENDC))
+            creaPermutazioni(dati,labels_dati,num_giorni_analisi)
+    else:
+        print("Nessun metodo trovato...")
+        exit()
 
 
 if __name__ == "__main__":
+    print("_" * 110)
+    print("\n"
+            "#####                                                         ##### \n"
+            "#     # #####  ######   ##   #####  ####  #####  ######       #     # #####    ##   ###### #  ####  # \n"
+            "#       #    # #       #  #    #   #    # #    # #            #       #    #  #  #  #      # #    # # \n"
+            "#       #    # #####  #    #   #   #    # #    # #####        #  #### #    # #    # #####  # #      # \n"
+            "#       #####  #      ######   #   #    # #####  #            #     # #####  ###### #      # #      # \n"
+            "#     # #   #  #      #    #   #   #    # #   #  #            #     # #   #  #    # #      # #    # # \n"
+            " #####  #    # ###### #    #   #    ####  #    # ######        #####  #    # #    # #      #  ####  # ")
+    print("_" * 110)
     starter(1)
