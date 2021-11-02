@@ -1,6 +1,8 @@
 import csv
 import os
 import os.path
+from os import listdir
+from os.path import isfile, join
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,20 +20,6 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-
-
-def inserisci_parametri():
-    '''Settaggio dei parametri iniziali tramite utente'''
-    try:
-        giorni_analisi = int(input("Giorni di analisi: "))
-    except ValueError:
-        print("ERRORE, Inserire un numero valido")
-        exit()
-    try:
-        giorni_training = int(input("Giorni di training: "))
-    except ValueError:
-        print("ERRORE, Inserire un numero valido")
-        exit()
 
 
 '''Metodo per aprire i file csv'''
@@ -120,7 +108,9 @@ def creaMatriceGrafici(serie1,serie2,labels,num_graf):
             graf.grid()
             plt.show()
         elif num_graf == 2:
-            fig, graf = plt.subplots(1, 2, sharex=True, sharey=True)
+            righe = 1
+            colonne = 2
+            fig, graf = plt.subplots(righe, colonne, sharex=True, sharey=True)
             start = 0
             delta = int(len(x)/num_graf)
             for z in range(2):
@@ -150,6 +140,7 @@ def creaMatriceGrafici(serie1,serie2,labels,num_graf):
         fig, graf = plt.subplots(righe, colonne, sharex=True, sharey=True)
         start = 0
         delta = int(len(x) / num_graf)
+        #TOFIX: Quando i grafici sono due questo diventa un problema.
         for i in range(righe):
             for z in range(colonne):
                 try:
@@ -178,34 +169,68 @@ def creaMatriceGrafici(serie1,serie2,labels,num_graf):
         exit()
 
 
-#TOFIX: è da riguardare sta cosa qua
-def creaPermutazioni(serie,labels):
-    num_permutazioni = (len(serie)*(len(serie)-1))/2
-    print("Lunghezza serie : %i" %len(serie))
-    per_data = []
-    for i in range(len(serie)):
-        temp = []
-        for z in range(len(serie[0])):
-            if serie[i][z][1] == '':
-                temp.append(float(0))
-            else:
-                temp.append(float(serie[i][z][1]))
-            #print(serie[i][z][1])
-        per_data.append(temp)
-    #print(per_data)
-    #NOTA: Meglio non fare la corrleazione perchè utilizza 2000++ colonne e righe
-    '''a = pd.DataFrame(per_data)
-    mat = a.corr()
-    print(mat)
-    print(a)
-    plt.matshow(mat)
-    plt.show()'''
-    #TODO: Come creare le permutazioni
-    if num_permutazioni <= 6 and num_permutazioni > 0:
-        pass
+def creaGrafico2D(x,y, labels_dati, split):
+    # Trasformo i giorni in numero di punti dati
+    split = int(split * 24)
+    #print(bcolors.OKBLUE + "In creazione..." + bcolors.ENDC)
+    if type(split) == int and split > 0:
+        fig, graf = plt.subplots(1,2, sharex=True, sharey=True)
+        graf[0].scatter(x[:-split], y[:-split], c=np.arange(len(x[:-split])), linestyle='None',
+                        marker='x', alpha=0.4)
+        graf[0].set_xlabel(labels_dati[0], fontsize=15)
+        graf[0].set_ylabel(labels_dati[1], fontsize=15)
+        graf[0].grid()
+        graf[0].set_title("Periodo di analisi")
+        graf[1].scatter(x[-split:], y[-split:], c="red", linestyle='None',
+                        marker='x', alpha=0.4)
+        graf[1].set_xlabel(labels_dati[0], fontsize=15)
+        graf[1].set_ylabel(labels_dati[1], fontsize=15)
+        graf[1].grid()
+        graf[1].set_title("Periodo di confronto di %i giorni" %int(split/24))
     else:
-        print(bcolors.WARNING + "Attenzione: Le permutazioni risulterebbero troppe per visualizzare in un unica"
-                                " schermata, riprovare con un numero minore." + bcolors.ENDC)
+        colore = np.arange(len(x))
+        plt.scatter(x,y, c=colore , linestyle='None', marker='x', alpha=0.4, label=labels_dati[1])
+        plt.xlabel(labels_dati[0])
+        plt.ylabel(labels_dati[1])
+        plt.legend()
+        plt.grid()
+    plt.tight_layout()
+    plt.show()
+
+
+def creaPermutazioni(serie,labels_dati,giorni_analisi):
+    if type(giorni_analisi) == int and giorni_analisi > 0:
+        colonne = []
+        for i in range(len(serie)):
+            colonne.append((estraiDati(serie[i])))
+        matrice = pd.DataFrame(colonne).transpose()
+        matrice.columns = labels_dati
+        for i in range(len(labels_dati)):
+            z = 1
+            try:
+                while z + i < len(labels_dati):
+                    lab_temp = [labels_dati[i], labels_dati[i+z]]
+                    creaGrafico2D(matrice[labels_dati[i]], matrice[labels_dati[i+z]], lab_temp, giorni_analisi)
+                    z += 1
+            except:
+                pass
+    else:
+        colonne = []
+        for i in range(len(serie)):
+            colonne.append((estraiDati(serie[i])))
+        matrice = pd.DataFrame(colonne).transpose()
+        matrice.columns = labels_dati
+        for i in range(len(labels_dati)):
+            z = 1
+            try:
+                while z + i < len(labels_dati):
+                    lab_temp = [labels_dati[i], labels_dati[i+z]]
+                    creaGrafico2D(matrice[labels_dati[i]], matrice[labels_dati[i+z]], lab_temp)
+                    z += 1
+            except:
+                pass
+        # Per avere gli assi:
+        # print(matrice[labels_dati[0]])
 
 
 def analizzaDati(serie, tipo_analisi, labels_dati):
@@ -229,6 +254,15 @@ def analizzaDati(serie, tipo_analisi, labels_dati):
                 plt.show()
             elif i == 1: #Ovvero Confronta
                 #TODO: Da fare
+                giorni_analisi = input(int(bcolors.HEADER + "Inserisci il numero di giorni di analisi: " + bcolors.ENDC))
+                dati_comp = input(int(bcolors.HEADER + "Quali grafici vuoi comparare? Ne puoi sceglierne due: "
+                                                       "\n %s" %labels_dati +bcolors.ENDC))
+                max_values = []
+                min_values = []
+                for colonna in matrice:
+                    max_values = matrice[colonna].max()
+                    min_values = matrice[colonna].min()
+
                 pass
             else:
                 pass
@@ -236,31 +270,53 @@ def analizzaDati(serie, tipo_analisi, labels_dati):
             print(bcolors.WARNING + "Nessuna analisi scelta" +  bcolors.ENDC)
 
 
-def starter():
+'''Inserisci tutti i file .csv presenti nella cartella del programma'''
+def autoInserimentoDati():
+    nome_files = []
+    for file in os.listdir():
+        #print(file[-3:])
+        if file[-3:] == "csv":
+            nome_files.append(file)
+        else:
+            pass
+    return nome_files
+
+
+def starter(autoinserimento):
     flag_inserisci_file = 0
     dati = []
     solo_y = []
     labels_dati = []
-    print(bcolors.WARNING + "Inserisici per primo il dataset di riferimento (quello comune a tutti)" + bcolors.ENDC)
-    while flag_inserisci_file == 0:
-        nom_file = input("Nome del file da aprire: ")
-        a = apri_file_csv(nom_file)
-        dati.append(a[0])
-        labels_dati.append(a[1])
-        continua = input(bcolors.HEADER + "Vuoi inserire altri files? [Sì - premi 's']  [No - premi 'n']" + bcolors.ENDC + "\n")
-        if continua == 's':
-            pass
-        else:
-            flag_inserisci_file = 1
+    if autoinserimento == 1:
+        files = autoInserimentoDati()
+        print(files)
+        for i in range(len(files)):
+            a = apri_file_csv(files[i])
+            dati.append(a[0])
+            labels_dati.append(a[1])
+    else:
+        print(bcolors.WARNING + "Inserisici per primo il dataset di riferimento (quello comune a tutti)" + bcolors.ENDC)
+        while flag_inserisci_file == 0:
+            nom_file = input("Nome del file da aprire: ")
+            a = apri_file_csv(nom_file)
+            dati.append(a[0])
+            labels_dati.append(a[1])
+            continua = input(bcolors.HEADER + "Vuoi inserire altri files? [Sì - premi 's']  [No - premi 'n']" + bcolors.ENDC + "\n")
+            if continua == 's':
+                pass
+            else:
+                flag_inserisci_file = 1
     confronta_tempi(dati)
-    '''#Crea matrice di grafici
-    num_graf = int(input(bcolors.HEADER + "Inserisci numero grafici: " + bcolors.ENDC))
+    # Crea matrice di grafici
+    '''num_graf = int(input(bcolors.HEADER + "Inserisci numero grafici: " + bcolors.ENDC))
     creaMatriceGrafici(dati[0],dati[1],labels_dati,num_graf)'''
-    tipo_analisi = input(str(bcolors.HEADER + "Inserisci che tipo di analisi si vuole fare: " + bcolors.ENDC))
-    analizzaDati(dati, tipo_analisi, labels_dati)
-    #creaPermutazioni(dati,labels_dati)
+    # Analizza dati
+    '''tipo_analisi = input(str(bcolors.HEADER + "Inserisci che tipo di analisi si vuole fare: " + bcolors.ENDC))
+    analizzaDati(dati, tipo_analisi, labels_dati)'''
+    # Crea grafici per ogni permutazione
+    num_giorni_analisi = int(input(bcolors.HEADER + "Inserisci il numero di giorni di analisi: " + bcolors.ENDC))
+    creaPermutazioni(dati,labels_dati,num_giorni_analisi)
 
 
 if __name__ == "__main__":
-    starter()
-    #analizzaDati(1,"Correlazione")
+    starter(1)
