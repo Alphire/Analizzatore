@@ -7,6 +7,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sn
+from sys import version_info
+from tkinter import *
+if version_info.major == 2:
+    import Tkinter as tk
+elif version_info.major == 3:
+    import tkinter as tk
+
+
+
 
 
 #NOTA: Non funziona sulla console windows
@@ -321,7 +330,36 @@ def starter(autoinserimento):
             else:
                 flag_inserisci_file = 1
     confronta_tempi(dati)
-    tipo_metodo = input("Che metodo vuoi usare?\n%s\n"  %tipo_metodi)
+
+    def matrice():
+        num_graf = int(input(bcolors.HEADER + "Inserisci numero grafici: " + bcolors.ENDC))
+        creaMatriceGrafici(dati[0], dati[1], labels_dati, num_graf)
+
+    def analizzatore():
+        #tipo_analisi = input(str(bcolors.HEADER + "Inserisci che tipo di analisi si vuole fare: " + bcolors.ENDC))
+        corr_button = tk.Button(text = "Correlazione", command= lambda : analizzaDati(dati, "Correlazione", labels_dati))
+        confronta_button = tk.Button(text="Confronta", command=lambda: analizzaDati(dati, "Confronta", labels_dati))
+        corr_button.pack()
+        confronta_button.pack()
+        #analizzaDati(dati, tipo_analisi, labels_dati)
+
+    def permutazioni():
+        num_giorni_analisi = int(input(bcolors.HEADER + "Inserisci il numero di giorni di analisi: " + bcolors.ENDC))
+        creaPermutazioni(dati, labels_dati, num_giorni_analisi)
+
+    #TODO: Da implementare
+    top = tk.Tk()
+    top.title("Creatore di Gracici --- di Alberto Bonetti")
+    a = tk.Button(top, text = 'Matrice', command=matrice)
+    b = tk.Button(top, text = 'Analizzatore', command=analizzatore)
+    c = tk.Button(top, text = 'Permutazioni', command=permutazioni)
+    a.pack()
+    b.pack()
+    c.pack()
+    top.mainloop()
+
+
+    '''tipo_metodo = input("Che metodo vuoi usare?\n%s\n"  %tipo_metodi)
     for i in range(len(tipo_metodi)):
         if tipo_metodo == "Matrice" or tipo_metodo == "matrice":
             # Crea matrice di grafici
@@ -337,7 +375,7 @@ def starter(autoinserimento):
             creaPermutazioni(dati,labels_dati,num_giorni_analisi)
     else:
         print("Nessun metodo trovato...")
-        exit()
+        exit()'''
 
 
 if __name__ == "__main__":
