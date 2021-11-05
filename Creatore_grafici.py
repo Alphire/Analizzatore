@@ -1,4 +1,5 @@
 import csv
+import datetime
 import os
 import os.path
 from os import listdir
@@ -7,33 +8,25 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sn
+import  time
+from colorama import init ,Fore, Back, Style
+init()
 
-
-#NOTA: Non funziona sulla console windows
 '''Settings per i colori dell'output'''
-'''class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    '''
-
-'''Dato che non funziona con il terminal'''
+#TOFIX: 95m non funziona nella console
 class bcolors:
-    HEADER = ''
-    OKBLUE = ''
-    OKCYAN = ''
-    OKGREEN = ''
-    WARNING = ''
-    FAIL = ''
-    ENDC = ''
-    BOLD = ''
-    UNDERLINE = ''
+    HEADER = Fore.MAGENTA
+    OKBLUE = Fore.BLUE
+    OKCYAN = Fore.CYAN
+    OKGREEN = Fore.GREEN
+    WARNING = Fore.LIGHTYELLOW_EX
+    FAIL = Fore.RED
+    ENDC = Style.RESET_ALL
+
+
+def versione(num):
+    print(Back.WHITE + Fore.BLACK + f"Versione {num} --- Del giorno : {time.asctime()}" + Style.RESET_ALL)
+    print(Back.LIGHTWHITE_EX + Fore.BLACK + "Di Alberto Bonetti" + Style.RESET_ALL)
 
 
 '''Metodo per aprire i file csv'''
@@ -53,6 +46,7 @@ def apri_file_csv(nome_file):
             print(bcolors.OKBLUE + "Dimensionalità del file: %i punti" %len(arr) + bcolors.ENDC)
             giorni = int(len(arr)/24)
             print(bcolors.OKBLUE + "Tradotto in giorni --> circa %i" %giorni + "gg" + bcolors.ENDC)
+            print(Back.WHITE + "-" * 100 + Style.RESET_ALL)
             return arr, label
     else:
         print(bcolors.FAIL + "Non sembra esserci alcun file il nome: '%s" %nome_file + "'" +  bcolors.ENDC)
@@ -86,7 +80,9 @@ def confronta_dim(arr1,arr2):
     if len(arr1) == len(arr2):
         pass
     else:
-        print(bcolors.FAIL + "Errore: Dimensionalità non corrisponde" + bcolors.ENDC)
+        print(bcolors.FAIL + f"Errore: Dimensionalità non corrisponde"
+                             f"\nDimensioni discordanti --> {len(arr1)} != {len(arr2)}" + bcolors.ENDC)
+
 
 
 def estraiDati(serie):
@@ -102,13 +98,15 @@ def estraiDati(serie):
 # Metodo per creare da due serie dati, una matrice di grafici, suddivisa in n periodi (Lunghezza serie / num_grafici)
 def creaMatriceGrafici(serie1,serie2,labels,num_graf):
     x,y = [],[]
+    confronta_dim(serie1,serie2)
     for i in range(len(serie1)):
         if serie1[i][1] == '':
-            x.append(float(0))
-        elif serie2[i][1] == '':
-            y.append(float(0))
+            x.append(float())
         else:
             x.append(float(serie1[i][1]))
+        if serie2[i][1] == '':
+            y.append(float())
+        else:
             y.append(float(serie2[i][1]))
     confronta_dim(x,y)
     colore_storico = np.arange(len(x))
@@ -303,7 +301,7 @@ def starter(autoinserimento):
     labels_dati = []
     if autoinserimento == 1:
         files = autoInserimentoDati()
-        print(files)
+        print(bcolors.WARNING + str(files) + bcolors.ENDC)
         for i in range(len(files)):
             a = apri_file_csv(files[i])
             dati.append(a[0])
@@ -321,12 +319,22 @@ def starter(autoinserimento):
             else:
                 flag_inserisci_file = 1
     confronta_tempi(dati)
-    tipo_metodo = input("Che metodo vuoi usare?\n%s\n"  %tipo_metodi)
+    tipo_metodo = input(bcolors.HEADER + "Che metodo vuoi usare?\n%s\n"  %tipo_metodi + bcolors.ENDC)
     for i in range(len(tipo_metodi)):
         if tipo_metodo == "Matrice" or tipo_metodo == "matrice":
             # Crea matrice di grafici
             num_graf = int(input(bcolors.HEADER + "Inserisci numero grafici: " + bcolors.ENDC))
-            creaMatriceGrafici(dati[0],dati[1],labels_dati,num_graf)
+            for i in range(len(labels_dati)):
+                print(bcolors.HEADER + "#" + str(i+1) + f" = {labels_dati[i]}" + bcolors.ENDC)
+            scelta_gra = str(input(bcolors.HEADER + "Inserisci quale coppia di dati vuoi analizzare: " + bcolors.ENDC))
+            #TODO: E se ce ne fossero più di 10 dati? cazzo faccio?
+            if int(scelta_gra[0])-1 <= len(dati) and int(scelta_gra[0])-1 >=0 and int(scelta_gra[1])-1 <= len(dati) and int(scelta_gra[1])-1 >=0:
+                indice1 = int(int(scelta_gra[0]) - 1)
+                indice2 = int(int(scelta_gra[1]) - 1)
+                label_tem = []
+                label_tem.append(labels_dati[indice1])
+                label_tem.append(labels_dati[indice2])
+                creaMatriceGrafici(dati[indice1],dati[indice2],label_tem,num_graf)
         elif tipo_metodo == "Analizzatore" or tipo_metodo == "analizzatore":
             # Analizza dati
             tipo_analisi = input(str(bcolors.HEADER + "Inserisci che tipo di analisi si vuole fare: " + bcolors.ENDC))
@@ -341,6 +349,7 @@ def starter(autoinserimento):
 
 
 if __name__ == "__main__":
+    versione("0.0.1")
     print("_" * 110)
     print("\n"
             "#####                                                         ##### \n"
