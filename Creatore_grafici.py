@@ -4,6 +4,8 @@ import os
 import os.path
 from os import listdir
 from os.path import isfile, join
+
+import numpy
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,10 +14,10 @@ import  time
 from colorama import init ,Fore, Back, Style
 init()
 
+
 '''Settings per i colori dell'output'''
-#TOFIX: 95m non funziona nella console
 class bcolors:
-    HEADER = Fore.MAGENTA
+    HEADER = Fore.LIGHTYELLOW_EX
     OKBLUE = Fore.BLUE
     OKCYAN = Fore.CYAN
     OKGREEN = Fore.GREEN
@@ -24,8 +26,8 @@ class bcolors:
     ENDC = Style.RESET_ALL
 
 
-def versione(num):
-    print(Back.WHITE + Fore.BLACK + f"Versione {num} --- Del giorno : {time.asctime()}" + Style.RESET_ALL)
+def versione(num, giorno):
+    print(Back.WHITE + Fore.BLACK + f"Versione {num} --- Del giorno : {giorno}" + Style.RESET_ALL)
     print(Back.LIGHTWHITE_EX + Fore.BLACK + "Di Alberto Bonetti" + Style.RESET_ALL)
 
 
@@ -82,7 +84,6 @@ def confronta_dim(arr1,arr2):
     else:
         print(bcolors.FAIL + f"Errore: Dimensionalità non corrisponde"
                              f"\nDimensioni discordanti --> {len(arr1)} != {len(arr2)}" + bcolors.ENDC)
-
 
 
 def estraiDati(serie):
@@ -265,20 +266,86 @@ def analizzaDati(serie, tipo_analisi, labels_dati):
                 plt.show()
             elif i == 1: #Ovvero Confronta
                 #TODO: Da fare
-                giorni_analisi = input(int(bcolors.HEADER + "Inserisci il numero di giorni di analisi: " + bcolors.ENDC))
-                dati_comp = input(int(bcolors.HEADER + "Quali grafici vuoi comparare? Ne puoi sceglierne due: "
-                                                       "\n %s" %labels_dati +bcolors.ENDC))
+                print(Back.RED + Fore.LIGHTWHITE_EX + "IN FASE DI SVILUPPO ---- NON USARLA" + Style.RESET_ALL)
+                giorni_analisi = int(input(bcolors.HEADER + "Inserisci il numero di giorni di analisi: " + bcolors.ENDC))
+                for i in range(len(labels_dati)):
+                    print(bcolors.HEADER + "#" + str(i + 1) + f" = {labels_dati[i]}" + bcolors.ENDC)
+                scelta_gra_1 = str(input(
+                    bcolors.HEADER + "SETTAGGIO DI X --> Inserisci il numero identificativo del set di dati da utilizzare: "
+                    + bcolors.ENDC))
+                scelta_gra_2 = str(input(
+                    bcolors.HEADER + "SETTAGGIO DI Y --> Inserisci il numero identificativo del set di dati da utilizzare: "
+                    + bcolors.ENDC))
+                if int(scelta_gra_1) - 1 <= len(labels_dati) and int(scelta_gra_1) - 1 >= 0 \
+                        and int(scelta_gra_2) - 1 <= len(labels_dati) and int(scelta_gra_2) - 1 >= 0:
+                    indice1 = int(int(scelta_gra_1) - 1)
+                    indice2 = int(int(scelta_gra_2) - 1)
+                    label_tem = []
+                    label_tem.append(labels_dati[indice1])
+                    label_tem.append(labels_dati[indice2])
                 max_values = []
                 min_values = []
-                for colonna in matrice:
-                    max_values = matrice[colonna].max()
-                    min_values = matrice[colonna].min()
+                deltas = []
+                #TOFIX: Forse le deltas non vanno bene con gli outliers
+                colonne_interessate = [matrice[label_tem[0]], matrice[label_tem[1]]]
+                matrice_interessata = pd.DataFrame(colonne_interessate).transpose()
+                matrice_interessata.columns = label_tem
+                print(matrice_interessata)
+                for colonna in matrice_interessata:
+                    max_values.append(matrice_interessata[colonna].max())
+                    min_values.append(matrice_interessata[colonna].min())
+                    deltas.append(matrice_interessata[colonna].max()-matrice_interessata[colonna].min())
+                soglia_allarme = int(input(bcolors.HEADER + "Inserisci la percentuale di soglia allarme (ovviamente compresa fra 0 e 100): "
+                      + bcolors.ENDC))
+                if soglia_allarme >= 0 and soglia_allarme <=100:
+                    soglia_allarme = soglia_allarme/100
+                    indici = []
+                    x_fuori, y_fuori = [], []
+                    #print(matrice_interessata[label_tem[0]][-giorni_analisi:])
+                    for i in range(len(matrice_interessata[label_tem[0]][-giorni_analisi:])):
+                        target_x = matrice_interessata[label_tem[0]][i]
+                        limite_sup_x = float(deltas[0]*soglia_allarme + matrice_interessata[label_tem[0]][i])
+                        limite_inf_x = float(matrice_interessata[label_tem[0]][i] - deltas[0]*soglia_allarme)
+                        condizione_x = matrice_interessata[label_tem[0]][:-giorni_analisi].between(limite_inf_x, limite_sup_x)
 
+                        limite_sup_y = float(deltas[1]*soglia_allarme + matrice_interessata[label_tem[1]][i])
+                        limite_inf_y = float(matrice_interessata[label_tem[1]][i] - deltas[1]*soglia_allarme)
+                        condizione_y = matrice_interessata[label_tem[1]][:-giorni_analisi].between(limite_inf_y, limite_sup_y)
+                        conteggio = 0
+                        for z in range(len(condizione_x)):
+                            if condizione_x[z] == False and condizione_y[z] == False:
+                                conteggio += 1
+                        if conteggio == len(condizione_x):
+                                #Indicano per quali x ed y non rientrano le x ed y di analisi.
+                                x_fuori.append(matrice_interessata[label_tem[0]][i])
+                                y_fuori.append(matrice_interessata[label_tem[1]][i])
+                    #Ora devo creare il grafico
+                    x_train = matrice_interessata[label_tem[0]][:-giorni_analisi]
+                    y_train = matrice_interessata[label_tem[1]][:-giorni_analisi]
+                    fig, graf = plt.subplots(1, 2, sharex=True, sharey=True)
+                    graf[0].scatter(x_train, y_train, c=np.arange(len(x_train)), linestyle='None',
+                                    marker='x', alpha=0.4)
+                    graf[0].set_xlabel(label_tem[0], fontsize=15)
+                    graf[0].set_ylabel(label_tem[1], fontsize=15)
+                    graf[0].grid()
+                    graf[0].set_title("Periodo di analisi")
+                    graf[1].scatter(x_fuori, y_fuori, c="red", linestyle='None',
+                                    marker='x', alpha=0.4)
+                    graf[1].set_xlabel(label_tem[0], fontsize=15)
+                    graf[1].set_ylabel(label_tem[1], fontsize=15)
+                    graf[1].grid()
+                    graf[1].set_title("Periodo di confronto di %i giorni" % giorni_analisi)
+                    plt.tight_layout()
+                    plt.show()
+                    #print(indici)
+                else:
+                    print(bcolors.FAIL + "SOGLIA NON VALIDA!" + bcolors.ENDC)
+                #print(deltas)
                 pass
             else:
                 pass
         else:
-            print(bcolors.WARNING + "Nessuna analisi scelta" +  bcolors.ENDC)
+            print(bcolors.FAIL + "Nessuna analisi scelta" +  bcolors.ENDC)
 
 
 '''Inserisci tutti i file .csv presenti nella cartella del programma'''
@@ -297,8 +364,8 @@ def starter(autoinserimento):
     tipo_metodi = ["Matrice", "Analizzatore", "Permutazioni"]
     flag_inserisci_file = 0
     dati = []
-    solo_y = []
     labels_dati = []
+    #Inserimento dei file
     if autoinserimento == 1:
         files = autoInserimentoDati()
         print(bcolors.WARNING + str(files) + bcolors.ENDC)
@@ -319,6 +386,7 @@ def starter(autoinserimento):
             else:
                 flag_inserisci_file = 1
     confronta_tempi(dati)
+    #Scelta del metodo
     tipo_metodo = input(bcolors.HEADER + "Che metodo vuoi usare?\n%s\n"  %tipo_metodi + bcolors.ENDC)
     for i in range(len(tipo_metodi)):
         if tipo_metodo == "Matrice" or tipo_metodo == "matrice":
@@ -326,18 +394,25 @@ def starter(autoinserimento):
             num_graf = int(input(bcolors.HEADER + "Inserisci numero grafici: " + bcolors.ENDC))
             for i in range(len(labels_dati)):
                 print(bcolors.HEADER + "#" + str(i+1) + f" = {labels_dati[i]}" + bcolors.ENDC)
-            scelta_gra = str(input(bcolors.HEADER + "Inserisci quale coppia di dati vuoi analizzare: " + bcolors.ENDC))
-            #TODO: E se ce ne fossero più di 10 dati? cazzo faccio?
-            if int(scelta_gra[0])-1 <= len(dati) and int(scelta_gra[0])-1 >=0 and int(scelta_gra[1])-1 <= len(dati) and int(scelta_gra[1])-1 >=0:
-                indice1 = int(int(scelta_gra[0]) - 1)
-                indice2 = int(int(scelta_gra[1]) - 1)
+            scelta_gra_1 = str(input(
+                bcolors.HEADER + "SETTAGGIO DI X --> Inserisci il numero identificativo del set di dati da utilizzare: "
+                + bcolors.ENDC))
+            scelta_gra_2 = str(input(
+                bcolors.HEADER + "SETTAGGIO DI Y --> Inserisci il numero identificativo del set di dati da utilizzare: "
+                + bcolors.ENDC))
+            if int(scelta_gra_1)-1 <= len(dati) and int(scelta_gra_1)-1 >=0 \
+                    and int(scelta_gra_2)-1 <= len(dati) and int(scelta_gra_2)-1 >=0:
+                indice1 = int(int(scelta_gra_1) - 1)
+                indice2 = int(int(scelta_gra_2) - 1)
                 label_tem = []
                 label_tem.append(labels_dati[indice1])
                 label_tem.append(labels_dati[indice2])
                 creaMatriceGrafici(dati[indice1],dati[indice2],label_tem,num_graf)
         elif tipo_metodo == "Analizzatore" or tipo_metodo == "analizzatore":
             # Analizza dati
+            print(bcolors.HEADER + 'Tipi accettati: ["Correlazione", "Confronta"]' + bcolors.ENDC)
             tipo_analisi = input(str(bcolors.HEADER + "Inserisci che tipo di analisi si vuole fare: " + bcolors.ENDC))
+            #TODO: è meglio non scriverlo ma ricavare i metodi disponibili
             analizzaDati(dati, tipo_analisi, labels_dati)
         elif tipo_metodo == "Permutazioni" or "permutazioni":
             # Crea grafici per ogni permutazione
@@ -349,7 +424,7 @@ def starter(autoinserimento):
 
 
 if __name__ == "__main__":
-    versione("0.0.1")
+    versione("0.0.2", "06/11/2021")
     print("_" * 110)
     print("\n"
             "#####                                                         ##### \n"
