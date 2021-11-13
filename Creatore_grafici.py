@@ -119,11 +119,89 @@ def confronta_dim(*arr):
 def estraiDati(serie):
     colonna = []
     for i in range(len(serie)):
-        if serie[i][1] == '':
+        try:
+            if serie[i][1] == '':
+                colonna.append(float(0))
+            else:
+                colonna.append(float(serie[i][1]))
+        except:
             colonna.append(float(0))
-        else:
-            colonna.append(float(serie[i][1]))
     return colonna
+
+
+#TODO: Fare più serie
+def confrontaDueSerie(serie, labels_dati):
+    colonne = []
+    for i in range(len(serie)):
+        colonne.append(estraiDati(serie[i]))
+    matrice = pd.DataFrame(colonne).transpose()
+    matrice.columns = labels_dati
+    print(matrice)
+    for i in range(len(labels_dati)):
+        print(bcolors.HEADER + "#" + str(i + 1) + f" = {labels_dati[i]}" + bcolors.ENDC)
+    scelta_x1 = str(input(
+        bcolors.HEADER + "SETTAGGIO DI X1 --> Inserisci il numero identificativo del set di dati da utilizzare: "
+        + bcolors.ENDC))
+    scelta_y1 = str(input(
+        bcolors.HEADER + "SETTAGGIO DI Y1 --> Inserisci il numero identificativo del set di dati da utilizzare: "
+        + bcolors.ENDC))
+    scelta_x2 = str(input(
+        bcolors.HEADER + "SETTAGGIO DI X2 --> Inserisci il numero identificativo del set di dati da utilizzare: "
+        + bcolors.ENDC))
+    scelta_y2 = str(input(
+        bcolors.HEADER + "SETTAGGIO DI Y2 --> Inserisci il numero identificativo del set di dati da utilizzare: "
+        + bcolors.ENDC))
+    if int(scelta_x1)-1 >= 0 and int(scelta_x1)-1 <= len(labels_dati):
+        scelta_x1 = int(scelta_x1)-1
+    if int(scelta_x2) - 1 >= 0 and int(scelta_x2) - 1 <= len(labels_dati):
+        scelta_x2 = int(scelta_x2)-1
+    if int(scelta_y1)-1 >= 0 and int(scelta_y1)-1 <= len(labels_dati):
+        scelta_y1 = int(scelta_y1)-1
+    if int(scelta_y2)-1 >= 0 and int(scelta_y2)-1 <= len(labels_dati):
+        scelta_y2 = int(scelta_y2)-1
+    x = matrice[labels_dati[scelta_x1]].values.transpose()
+    y = matrice[labels_dati[scelta_y1]].values.transpose()
+    x2 = matrice[labels_dati[scelta_x2]].values.transpose()
+    y2 = matrice[labels_dati[scelta_y2]].values.transpose()
+
+    righe = 3
+    colonne = 4
+    fig, graf = plt.subplots(righe, colonne, sharex=True, sharey=True)
+    start = 0
+    delta = int(len(x) / 12)
+    for i in range(righe):
+        for z in range(colonne):
+            try:
+                graf[i][z].scatter(x[start:(start + delta)], y[start:(start + delta)], c='blue',
+                                   linestyle='None', marker='x', label = labels_dati[scelta_y1],
+                                   alpha=0.4)
+                graf[i][z].scatter(x2[start:(start + delta)], y2[start:(start + delta)], c='red',
+                                   linestyle='None', marker='x', label = labels_dati[scelta_y2],
+                                   alpha=0.4)
+                #graf[i][z].set_title(f'Dal {scelta_x1[start]} al {scelta_x1[start + delta]}')
+                graf[i][z].set_xlabel(labels_dati[scelta_x1], fontsize=10)
+                graf[i][z].legend()
+                graf[i][z].grid()
+                start += delta
+            except:
+                graf[i][z].scatter(x[start:], y[start:], c='blue',
+                                   linestyle='None', marker='x', label = labels_dati[scelta_y1],
+                                   alpha=0.4)
+                graf[i][z].scatter(x2[start:(start + delta)], y2[start:(start + delta)], c='red',
+                                   linestyle='None', marker='x', label = labels_dati[scelta_y2],
+                                   alpha=0.4)
+                #graf[i][z].set_title(f'Dal {x[start]} al {x[-1]}')
+                graf[i][z].set_xlabel(labels_dati[scelta_x1], fontsize=10)
+                graf[i][z].legend()
+                graf[i][z].grid()
+    plt.tight_layout()
+    '''fig = plt.figure()
+    ax1 = fig.add_subplot(111)
+    ax1.scatter(x,y, c = 'red', label=labels_dati[scelta_y1], marker='x', alpha=0.4)
+    ax1.set_xlabel(labels_dati[0], fontsize=15)
+    ax1.scatter(x2,y2, c = 'blue', label=labels_dati[scelta_y2], marker='x', alpha=0.4)'''
+    plt.legend()
+    plt.show()
 
 
 # Metodo per creare da due serie dati, una matrice di grafici, suddivisa in n periodi (Lunghezza serie / num_grafici)
@@ -443,7 +521,9 @@ def autoInserimentoDati():
 
 
 def starter(autoinserimento):
-    tipo_metodi = ["Matrice (premi 'm')", "Analizzatore (premi 'a')", "Permutazioni (premi 'p')", "Confronta più serie (premi 'c')"]
+    tipo_metodi = ["Matrice (premi 'm')", "Analizzatore (premi 'a')",
+                   "Permutazioni (premi 'p')", "Confronta più serie (premi 'c')",
+                   "Stesse x, diverse y (premi z)"]
     flag_inserisci_file = 0
     dati = []
     labels_dati = []
@@ -505,13 +585,15 @@ def starter(autoinserimento):
         #TODO: Scegli la serie di dati per il confronto
         print(Back.RED + Fore.LIGHTWHITE_EX + "IN FASE DI SVILUPPO ---- NON USARLA" + Style.RESET_ALL)
         creaPluriMatriceGraf(dati,labels=labels_dati, num_graf=12)
+    elif tipo_metodo == 'z' or tipo_metodo == 'Z':
+        confrontaDueSerie(dati,labels_dati)
     else:
         print("Nessun metodo trovato...")
         exit()
 
 
 if __name__ == "__main__":
-    versione("0.0.3", "07/11/2021")
+    versione("0.0.4", "13/11/2021")
     print("_" * 110)
     print("\n"
             "#####                                                         ##### \n"
