@@ -1,16 +1,14 @@
 import csv
-import datetime
+import math
 import os
 import os.path
-from os import listdir
-from os.path import isfile, join
 import random
-import numpy
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sn
 import  time
+from sklearn.linear_model import BayesianRidge
 from colorama import init ,Fore, Back, Style
 init()
 
@@ -151,6 +149,8 @@ def confrontaDueSerie(serie, labels_dati):
     scelta_y2 = str(input(
         bcolors.HEADER + "SETTAGGIO DI Y2 --> Inserisci il numero identificativo del set di dati da utilizzare: "
         + bcolors.ENDC))
+    treshold = float(input(bcolors.HEADER + "Soglia usata per eliminare i punti al di sotto di un certo valore di x: "
+                           + bcolors.ENDC))
     if int(scelta_x1)-1 >= 0 and int(scelta_x1)-1 <= len(labels_dati):
         scelta_x1 = int(scelta_x1)-1
     if int(scelta_x2) - 1 >= 0 and int(scelta_x2) - 1 <= len(labels_dati):
@@ -159,6 +159,12 @@ def confrontaDueSerie(serie, labels_dati):
         scelta_y1 = int(scelta_y1)-1
     if int(scelta_y2)-1 >= 0 and int(scelta_y2)-1 <= len(labels_dati):
         scelta_y2 = int(scelta_y2)-1
+    #Elimina dalla matrice i valori al di sotto del treshold
+    indexNames = matrice[matrice[labels_dati[scelta_x1]] <= treshold].index
+    matrice.drop(indexNames, inplace=True)
+    indexNames = matrice[matrice[labels_dati[scelta_x2]] <= treshold].index
+    matrice.drop(indexNames, inplace=True)
+
     x = matrice[labels_dati[scelta_x1]].values.transpose()
     y = matrice[labels_dati[scelta_y1]].values.transpose()
     x2 = matrice[labels_dati[scelta_x2]].values.transpose()
@@ -166,40 +172,71 @@ def confrontaDueSerie(serie, labels_dati):
 
     righe = 3
     colonne = 4
-    fig, graf = plt.subplots(righe, colonne, sharex=True, sharey=True)
+    fig, graf = plt.subplots(righe, colonne, sharex=True, sharey=True, constrained_layout=True)
     start = 0
     delta = int(len(x) / 12)
     for i in range(righe):
         for z in range(colonne):
-            try:
-                graf[i][z].scatter(x[start:(start + delta)], y[start:(start + delta)], c='blue',
-                                   linestyle='None', marker='x', label = labels_dati[scelta_y1],
-                                   alpha=0.4)
-                graf[i][z].scatter(x2[start:(start + delta)], y2[start:(start + delta)], c='red',
-                                   linestyle='None', marker='x', label = labels_dati[scelta_y2],
-                                   alpha=0.4)
-                #graf[i][z].set_title(f'Dal {scelta_x1[start]} al {scelta_x1[start + delta]}')
-                graf[i][z].set_xlabel(labels_dati[scelta_x1], fontsize=10)
-                graf[i][z].legend()
-                graf[i][z].grid()
-                start += delta
-            except:
+            #try:
+            graf[i][z].scatter(x[start:(start + delta)], y[start:(start + delta)], c='blue',
+                               linestyle='None', marker='x', label = labels_dati[scelta_y1],
+                               alpha=0.4)
+            graf[i][z].scatter(x2[start:(start + delta)], y2[start:(start + delta)], c='red',
+                               linestyle='None', marker='x', label = labels_dati[scelta_y2],
+                               alpha=0.4)
+
+            '''#Riquadri fra y-max e y-min
+            y_max_loc = y[start:(start + delta)].max()
+            y_min_loc = y[start:(start + delta)].min()
+            graf[i][z].fill_between([treshold,x.max()], y_max_loc, y_min_loc, alpha=0.2, color='blue')
+            y2_max_loc = y2[start:(start + delta)].max()
+            y2_min_loc = y2[start:(start + delta)].min()
+            graf[i][z].fill_between([treshold,x.max()], y2_max_loc, y2_min_loc, alpha=0.2, color='red')'''
+
+            print(Back.WHITE + Fore.BLACK + f"Periodo {i + 1,z + 1}:" + Style.RESET_ALL)
+            print(Fore.BLUE + f'Deviazione di {labels_dati[scelta_y1]}: {y[start:(start + delta)].var()}' + Style.RESET_ALL)
+            print(Fore.RED + f'Deviazione di {labels_dati[scelta_y2]}: {y2[start:(start + delta)].var()}' + Style.RESET_ALL)
+            print(f"Delta media {labels_dati[scelta_y1]} - {labels_dati[scelta_y2]} = "
+                                            f"{y[start:(start + delta)].mean() - y2[start:(start + delta)].mean()}")
+            #Lineee della media
+            #TOFIX:Nel periodo 3,3 la seconda serie non riesco a calcolare la media o la deviazione
+            y_media = np.full((len(x),1), y[start:(start + delta)].mean())
+            graf[i][z].plot(x, y_media, c='blue', label=f'Media di {labels_dati[scelta_y1]}')
+            y2_media = np.full((len(x), 1), y2[start:(start + delta)].mean())
+            graf[i][z].plot(x, y2_media, c='red', label=f'Media di {labels_dati[scelta_y2]}')
+            #Colora la differenza fra le due medie
+            delta_numeri = y[start:(start + delta)].mean() - y2[start:(start + delta)].mean()
+            print(delta_numeri)
+            #graf[i][z].text(treshold, delta_numeri/2 + y2[start:(start + delta)].mean(),r'$\Delta = ' + str(delta_numeri))
+            if  y[start:(start + delta)].mean() >=  y2[start:(start + delta)].mean():
+                graf[i][z].fill_between([treshold, x.max()], y[start:(start + delta)].mean(),
+                                        y2[start:(start + delta)].mean(), alpha=0.2, color='yellow')
+            else:
+                graf[i][z].fill_between([treshold, x.max()], y[start:(start + delta)].mean(),
+                                        y2[start:(start + delta)].mean(), alpha=0.2, color='green')
+            #Visualizzazzione dei grafici
+            #graf[i][z].legend()
+            graf[i][z].grid()
+            start += delta
+            '''except:
                 graf[i][z].scatter(x[start:], y[start:], c='blue',
                                    linestyle='None', marker='x', label = labels_dati[scelta_y1],
                                    alpha=0.4)
                 graf[i][z].scatter(x2[start:(start + delta)], y2[start:(start + delta)], c='red',
                                    linestyle='None', marker='x', label = labels_dati[scelta_y2],
                                    alpha=0.4)
-                #graf[i][z].set_title(f'Dal {x[start]} al {x[-1]}')
                 graf[i][z].set_xlabel(labels_dati[scelta_x1], fontsize=10)
+                #Lineee della media
+                y_media = np.full((len(x),1), y[start:].mean())
+                graf[i][z].plot(x, y_media, c='blue', label=f'Media di {labels_dati[scelta_y1]}')
+                y2_media = np.full((len(x), 1), y2[start:].mean())
+                graf[i][z].plot(x, y2_media, c='red', label=f'Mediaa di {labels_dati[scelta_y2]}')
+                # Visualizzazzione dei grafici
                 graf[i][z].legend()
-                graf[i][z].grid()
-    plt.tight_layout()
-    '''fig = plt.figure()
-    ax1 = fig.add_subplot(111)
-    ax1.scatter(x,y, c = 'red', label=labels_dati[scelta_y1], marker='x', alpha=0.4)
-    ax1.set_xlabel(labels_dati[0], fontsize=15)
-    ax1.scatter(x2,y2, c = 'blue', label=labels_dati[scelta_y2], marker='x', alpha=0.4)'''
+                graf[i][z].grid()'''
+    pienoSchermo = plt.get_current_fig_manager()
+    pienoSchermo.full_screen_toggle()
+    #plt.tight_layout()
     plt.legend()
     plt.show()
 
@@ -593,7 +630,7 @@ def starter(autoinserimento):
 
 
 if __name__ == "__main__":
-    versione("0.0.4", "13/11/2021")
+    versione("0.0.5", "24/11/2021")
     print("_" * 110)
     print("\n"
             "#####                                                         ##### \n"
@@ -609,4 +646,3 @@ if __name__ == "__main__":
         print(i)'''
     ''''''
     starter(1)
-
