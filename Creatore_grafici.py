@@ -137,6 +137,7 @@ def confrontaDueSerie(serie, labels_dati):
     print(matrice)
     for i in range(len(labels_dati)):
         print(bcolors.HEADER + "#" + str(i + 1) + f" = {labels_dati[i]}" + bcolors.ENDC)
+    scelta_num_confronti = int(input(bcolors.HEADER + "Quante serie vuoi inserire? 2 o 3? " +bcolors.ENDC))
     scelta_x1 = str(input(
         bcolors.HEADER + "SETTAGGIO DI X1 --> Inserisci il numero identificativo del set di dati da utilizzare: "
         + bcolors.ENDC))
@@ -149,32 +150,52 @@ def confrontaDueSerie(serie, labels_dati):
     scelta_y2 = str(input(
         bcolors.HEADER + "SETTAGGIO DI Y2 --> Inserisci il numero identificativo del set di dati da utilizzare: "
         + bcolors.ENDC))
+    if scelta_num_confronti == 3:
+        scelta_x3 = str(input(
+            bcolors.HEADER + "SETTAGGIO DI X3 --> Inserisci il numero identificativo del set di dati da utilizzare: "
+            + bcolors.ENDC))
+        scelta_y3 = str(input(
+            bcolors.HEADER + "SETTAGGIO DI Y3 --> Inserisci il numero identificativo del set di dati da utilizzare: "
+            + bcolors.ENDC))
     treshold = float(input(bcolors.HEADER + "Soglia usata per eliminare i punti al di sotto di un certo valore di x: "
                            + bcolors.ENDC))
     if int(scelta_x1)-1 >= 0 and int(scelta_x1)-1 <= len(labels_dati):
         scelta_x1 = int(scelta_x1)-1
     if int(scelta_x2) - 1 >= 0 and int(scelta_x2) - 1 <= len(labels_dati):
         scelta_x2 = int(scelta_x2)-1
+    if scelta_num_confronti == 3:
+        if int(scelta_x3) - 1 >= 0 and int(scelta_x3) - 1 <= len(labels_dati):
+            scelta_x3 = int(scelta_x3)-1
+        if int(scelta_y3) - 1 >= 0 and int(scelta_y3) - 1 <= len(labels_dati):
+            scelta_y3 = int(scelta_y3) - 1
     if int(scelta_y1)-1 >= 0 and int(scelta_y1)-1 <= len(labels_dati):
         scelta_y1 = int(scelta_y1)-1
     if int(scelta_y2)-1 >= 0 and int(scelta_y2)-1 <= len(labels_dati):
         scelta_y2 = int(scelta_y2)-1
+
     #Elimina dalla matrice i valori al di sotto del treshold
     indexNames = matrice[matrice[labels_dati[scelta_x1]] <= treshold].index
-    matrice.drop(indexNames, inplace=True)
+    matrice.loc[indexNames,labels_dati[scelta_x1]] = np.nan
     indexNames = matrice[matrice[labels_dati[scelta_x2]] <= treshold].index
-    matrice.drop(indexNames, inplace=True)
+    matrice.loc[indexNames, labels_dati[scelta_x2]] = np.nan
+    if scelta_num_confronti == 3:
+        indexNames = matrice[matrice[labels_dati[scelta_x3]] <= treshold].index
+        matrice.loc[indexNames, labels_dati[scelta_x3]] = np.nan
 
     x = matrice[labels_dati[scelta_x1]].values.transpose()
     y = matrice[labels_dati[scelta_y1]].values.transpose()
     x2 = matrice[labels_dati[scelta_x2]].values.transpose()
     y2 = matrice[labels_dati[scelta_y2]].values.transpose()
+    if scelta_num_confronti == 3:
+        x3 = matrice[labels_dati[scelta_x3]].values.transpose()
+        y3 = matrice[labels_dati[scelta_y3]].values.transpose()
 
     righe = 3
     colonne = 4
     fig, graf = plt.subplots(righe, colonne, sharex=True, sharey=True, constrained_layout=True)
     start = 0
-    delta = int(len(x) / 12)
+    delta = int(len(x) / 12) #8784 punti per un anno
+    #delta = int(8784/12)
     for i in range(righe):
         for z in range(colonne):
             #try:
@@ -184,6 +205,10 @@ def confrontaDueSerie(serie, labels_dati):
             graf[i][z].scatter(x2[start:(start + delta)], y2[start:(start + delta)], c='red',
                                linestyle='None', marker='x', label = labels_dati[scelta_y2],
                                alpha=0.4)
+            if scelta_num_confronti == 3:
+                graf[i][z].scatter(x3[start:(start + delta)], y3[start:(start + delta)], c='green',
+                                   linestyle='None', marker='x', label=labels_dati[scelta_y3],
+                                   alpha=0.4)
 
             '''#Riquadri fra y-max e y-min
             y_max_loc = y[start:(start + delta)].max()
@@ -192,28 +217,39 @@ def confrontaDueSerie(serie, labels_dati):
             y2_max_loc = y2[start:(start + delta)].max()
             y2_min_loc = y2[start:(start + delta)].min()
             graf[i][z].fill_between([treshold,x.max()], y2_max_loc, y2_min_loc, alpha=0.2, color='red')'''
-
             print(Back.WHITE + Fore.BLACK + f"Periodo {i + 1,z + 1}:" + Style.RESET_ALL)
-            print(Fore.BLUE + f'Deviazione di {labels_dati[scelta_y1]}: {y[start:(start + delta)].var()}' + Style.RESET_ALL)
-            print(Fore.RED + f'Deviazione di {labels_dati[scelta_y2]}: {y2[start:(start + delta)].var()}' + Style.RESET_ALL)
+            print(Fore.BLUE + f'{labels_dati[scelta_y1]}: Deviazione: {y[start:(start + delta)].var()} Media: '
+                              f'{np.nanmean(y[start:(start + delta)])}' + Style.RESET_ALL)
+            print(Fore.RED + f'{labels_dati[scelta_y2]}: Deviazione: {y2[start:(start + delta)].var()} Media: '
+                             f'{np.nanmean(y2[start:(start + delta)])}' + Style.RESET_ALL)
+            if scelta_num_confronti == 3:
+                print(
+                    Fore.GREEN + f'Deviazione di {labels_dati[scelta_y3]}: {y3[start:(start + delta)].var()}' + Style.RESET_ALL)
             print(f"Delta media {labels_dati[scelta_y1]} - {labels_dati[scelta_y2]} = "
-                                            f"{y[start:(start + delta)].mean() - y2[start:(start + delta)].mean()}")
+                                            f"{np.nanmean(y[start:(start + delta)]) - np.nanmean(y2[start:(start + delta)])}")
             #Lineee della media
-            #TOFIX:Nel periodo 3,3 la seconda serie non riesco a calcolare la media o la deviazione
-            y_media = np.full((len(x),1), y[start:(start + delta)].mean())
-            graf[i][z].plot(x, y_media, c='blue', label=f'Media di {labels_dati[scelta_y1]}')
-            y2_media = np.full((len(x), 1), y2[start:(start + delta)].mean())
-            graf[i][z].plot(x, y2_media, c='red', label=f'Media di {labels_dati[scelta_y2]}')
+            #TOFIX:La media sembra sempre tenere conto dei punti di vibrazioni presenti allo 0
+            y_media = np.full((len(x),1), np.nanmean(y[start:(start + delta)]))
+            graf[i][z].plot(x, y_media, c='blue', label=f'Media di {labels_dati[scelta_y1]}', linestyle='--', alpha= 0.5)
+            y2_media = np.full((len(x), 1), np.nanmean(y2[start:(start + delta)]))
+            graf[i][z].plot(x, y2_media, c='red', label=f'Media di {labels_dati[scelta_y2]}', linestyle='--', alpha= 0.5)
+            if scelta_num_confronti == 3:
+                y3_media = np.full((len(x), 1), np.nanmean(y3[start:(start + delta)]))
+                graf[i][z].plot(x, y3_media, c='green', label=f'Media di {labels_dati[scelta_y3]}', linestyle='--',
+                                alpha=0.5)
+                print(
+                    Fore.GREEN + f'{labels_dati[scelta_y3]}: Deviazione: {y3[start:(start + delta)].var()} Media: '
+                                 f'{np.nanmean(y3[start:(start + delta)])}' + Style.RESET_ALL)
             #Colora la differenza fra le due medie
-            delta_numeri = y[start:(start + delta)].mean() - y2[start:(start + delta)].mean()
-            print(delta_numeri)
+            delta_numeri = np.nanmean(y[start:(start + delta)]) - np.nanmean(y2[start:(start + delta)])
             #graf[i][z].text(treshold, delta_numeri/2 + y2[start:(start + delta)].mean(),r'$\Delta = ' + str(delta_numeri))
-            if  y[start:(start + delta)].mean() >=  y2[start:(start + delta)].mean():
-                graf[i][z].fill_between([treshold, x.max()], y[start:(start + delta)].mean(),
-                                        y2[start:(start + delta)].mean(), alpha=0.2, color='yellow')
-            else:
-                graf[i][z].fill_between([treshold, x.max()], y[start:(start + delta)].mean(),
-                                        y2[start:(start + delta)].mean(), alpha=0.2, color='green')
+            if scelta_num_confronti != 3:
+                if np.nanmean(y[start:(start + delta)]) >=  np.nanmean(y2[start:(start + delta)]):
+                    graf[i][z].fill_between([treshold, matrice[labels_dati[scelta_x1]].max(skipna=True)], np.nanmean(y[start:(start + delta)]),
+                                            np.nanmean(y2[start:(start + delta)]), alpha=0.2, color='yellow')
+                else:
+                    graf[i][z].fill_between([treshold, matrice[labels_dati[scelta_x1]].max(skipna=True)], np.nanmean(y[start:(start + delta)]),
+                                            np.nanmean(y2[start:(start + delta)]), alpha=0.2, color='green')
             #Visualizzazzione dei grafici
             #graf[i][z].legend()
             graf[i][z].grid()
@@ -225,11 +261,15 @@ def confrontaDueSerie(serie, labels_dati):
                 graf[i][z].scatter(x2[start:(start + delta)], y2[start:(start + delta)], c='red',
                                    linestyle='None', marker='x', label = labels_dati[scelta_y2],
                                    alpha=0.4)
+                if scelta_num_confronti == 3:
+                    graf[i][z].scatter(x3[start:(start + delta)], y3[start:(start + delta)], c='green',
+                                       linestyle='None', marker='x', label=labels_dati[scelta_y3],
+                                       alpha=0.4)
                 graf[i][z].set_xlabel(labels_dati[scelta_x1], fontsize=10)
                 #Lineee della media
-                y_media = np.full((len(x),1), y[start:].mean())
+                y_media = np.full((len(x),1), np.nanmean(y[start:].mean()))
                 graf[i][z].plot(x, y_media, c='blue', label=f'Media di {labels_dati[scelta_y1]}')
-                y2_media = np.full((len(x), 1), y2[start:].mean())
+                y2_media = np.full((len(x), 1), np.nanmean(y2[start:].mean()))
                 graf[i][z].plot(x, y2_media, c='red', label=f'Mediaa di {labels_dati[scelta_y2]}')
                 # Visualizzazzione dei grafici
                 graf[i][z].legend()
@@ -630,7 +670,7 @@ def starter(autoinserimento):
 
 
 if __name__ == "__main__":
-    versione("0.0.5", "24/11/2021")
+    versione("0.0.6", "26/11/2021")
     print("_" * 110)
     print("\n"
             "#####                                                         ##### \n"
