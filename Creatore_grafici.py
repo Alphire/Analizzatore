@@ -5,6 +5,7 @@ import os.path
 import random
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider, Button, RadioButtons
 import numpy as np
 import seaborn as sn
 import  time
@@ -127,12 +128,22 @@ def estraiDati(serie):
     return colonna
 
 
-#TODO: Fare più serie
-def confrontaDueSerie(serie, labels_dati):
+def estraiGiorni(serie):
+    colonna = []
+    for i in range(len(serie)):
+        colonna.append(str(serie[i][0]))
+    return colonna
+
+
+def confrontaSerieMultiple(serie, labels_dati):
     colonne = []
+    date = []
     for i in range(len(serie)):
         colonne.append(estraiDati(serie[i]))
+        date.append(estraiGiorni(serie[i]))
     matrice = pd.DataFrame(colonne).transpose()
+    matrice_date = pd.DataFrame(date).transpose()
+    matrice_date.columns = labels_dati
     matrice.columns = labels_dati
     print(matrice)
     for i in range(len(labels_dati)):
@@ -175,12 +186,18 @@ def confrontaDueSerie(serie, labels_dati):
 
     #Elimina dalla matrice i valori al di sotto del treshold
     indexNames = matrice[matrice[labels_dati[scelta_x1]] <= treshold].index
-    matrice.loc[indexNames,labels_dati[scelta_x1]] = np.nan
+    matrice.loc[indexNames,labels_dati[scelta_y1]] = np.nan
     indexNames = matrice[matrice[labels_dati[scelta_x2]] <= treshold].index
-    matrice.loc[indexNames, labels_dati[scelta_x2]] = np.nan
+    matrice.loc[indexNames, labels_dati[scelta_y2]] = np.nan
+
+    for i in range(len(matrice_date.columns)):
+        if matrice_date[labels_dati[i]][len(matrice_date[labels_dati[i]]) - 1] is None:
+            pass
+        else:
+            indice_con_maggior_num_date = i
     if scelta_num_confronti == 3:
         indexNames = matrice[matrice[labels_dati[scelta_x3]] <= treshold].index
-        matrice.loc[indexNames, labels_dati[scelta_x3]] = np.nan
+        matrice.loc[indexNames, labels_dati[scelta_y3]] = np.nan
 
     x = matrice[labels_dati[scelta_x1]].values.transpose()
     y = matrice[labels_dati[scelta_y1]].values.transpose()
@@ -205,6 +222,12 @@ def confrontaDueSerie(serie, labels_dati):
             graf[i][z].scatter(x2[start:(start + delta)], y2[start:(start + delta)], c='red',
                                linestyle='None', marker='x', label = labels_dati[scelta_y2],
                                alpha=0.4)
+            try:
+                graf[i][z].set_title(f'Dal {matrice_date[labels_dati[indice_con_maggior_num_date]][start][5:10]} al'
+                                     f' {matrice_date[labels_dati[indice_con_maggior_num_date]][start + delta][5:10]}')
+            except:
+                graf[i][z].set_title(f'Dal {matrice_date[labels_dati[indice_con_maggior_num_date]][start][5:10]} al'
+                                     f' {matrice_date[labels_dati[indice_con_maggior_num_date]][len(matrice_date[labels_dati[indice_con_maggior_num_date]])-1][5:10]}')
             if scelta_num_confronti == 3:
                 graf[i][z].scatter(x3[start:(start + delta)], y3[start:(start + delta)], c='green',
                                    linestyle='None', marker='x', label=labels_dati[scelta_y3],
@@ -218,17 +241,17 @@ def confrontaDueSerie(serie, labels_dati):
             y2_min_loc = y2[start:(start + delta)].min()
             graf[i][z].fill_between([treshold,x.max()], y2_max_loc, y2_min_loc, alpha=0.2, color='red')'''
             print(Back.WHITE + Fore.BLACK + f"Periodo {i + 1,z + 1}:" + Style.RESET_ALL)
-            print(Fore.BLUE + f'{labels_dati[scelta_y1]}: Deviazione: {y[start:(start + delta)].var()} Media: '
+
+            print(Back.WHITE + Fore.BLUE + f'{labels_dati[scelta_y1]}: Deviazione: {np.nanvar(y[start:(start + delta)])} Media: '
                               f'{np.nanmean(y[start:(start + delta)])}' + Style.RESET_ALL)
-            print(Fore.RED + f'{labels_dati[scelta_y2]}: Deviazione: {y2[start:(start + delta)].var()} Media: '
+            print(Back.WHITE + Fore.RED + f'{labels_dati[scelta_y2]}: Deviazione: {np.nanvar(y2[start:(start + delta)])} Media: '
                              f'{np.nanmean(y2[start:(start + delta)])}' + Style.RESET_ALL)
             if scelta_num_confronti == 3:
                 print(
-                    Fore.GREEN + f'Deviazione di {labels_dati[scelta_y3]}: {y3[start:(start + delta)].var()}' + Style.RESET_ALL)
+                    Back.WHITE + Fore.GREEN + f'Deviazione di {labels_dati[scelta_y3]}: {np.nanvar(y3[start:(start + delta)])}' + Style.RESET_ALL)
             print(f"Delta media {labels_dati[scelta_y1]} - {labels_dati[scelta_y2]} = "
                                             f"{np.nanmean(y[start:(start + delta)]) - np.nanmean(y2[start:(start + delta)])}")
             #Lineee della media
-            #TOFIX:La media sembra sempre tenere conto dei punti di vibrazioni presenti allo 0
             y_media = np.full((len(x),1), np.nanmean(y[start:(start + delta)]))
             graf[i][z].plot(x, y_media, c='blue', label=f'Media di {labels_dati[scelta_y1]}', linestyle='--', alpha= 0.5)
             y2_media = np.full((len(x), 1), np.nanmean(y2[start:(start + delta)]))
@@ -238,7 +261,7 @@ def confrontaDueSerie(serie, labels_dati):
                 graf[i][z].plot(x, y3_media, c='green', label=f'Media di {labels_dati[scelta_y3]}', linestyle='--',
                                 alpha=0.5)
                 print(
-                    Fore.GREEN + f'{labels_dati[scelta_y3]}: Deviazione: {y3[start:(start + delta)].var()} Media: '
+                    Back.WHITE + Fore.GREEN + f'{labels_dati[scelta_y3]}: Deviazione: {np.nanvar(y3[start:(start + delta)])} Media: '
                                  f'{np.nanmean(y3[start:(start + delta)])}' + Style.RESET_ALL)
             #Colora la differenza fra le due medie
             delta_numeri = np.nanmean(y[start:(start + delta)]) - np.nanmean(y2[start:(start + delta)])
@@ -274,9 +297,17 @@ def confrontaDueSerie(serie, labels_dati):
                 # Visualizzazzione dei grafici
                 graf[i][z].legend()
                 graf[i][z].grid()'''
-    pienoSchermo = plt.get_current_fig_manager()
-    pienoSchermo.full_screen_toggle()
+    '''pienoSchermo = plt.get_current_fig_manager()
+    pienoSchermo.full_screen_toggle()'''
     #plt.tight_layout()
+    #plt.legend()
+    #TODO:
+    '''if scelta_num_confronti == 3:
+        plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+                   ncol=3, mode="expand", borderaxespad=0.)
+    else:
+        plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+                   ncol=2, mode="expand", borderaxespad=0.)'''
     plt.legend()
     plt.show()
 
@@ -313,7 +344,7 @@ def creaMatriceGrafici(serie1,serie2,labels,num_graf):
         elif num_graf == 2:
             righe = 1
             colonne = 2
-            fig, graf = plt.subplots(righe, colonne, sharex=True, sharey=True)
+            fig, graf = plt.subplots(righe, colonne, sharex=True, sharey=True, constrained_layout=True)
             start = 0
             delta = int(len(x)/num_graf)
             for z in range(2):
@@ -340,7 +371,7 @@ def creaMatriceGrafici(serie1,serie2,labels,num_graf):
         elif num_graf == 11 or num_graf == 12:
             righe = 3
             colonne = 4
-        fig, graf = plt.subplots(righe, colonne, sharex=True, sharey=True)
+        fig, graf = plt.subplots(righe, colonne, sharex=True, sharey=True, constrained_layout=True)
         start = 0
         delta = int(len(x) / num_graf)
         #TOFIX: Quando i grafici sono due questo diventa un problema.
@@ -365,7 +396,7 @@ def creaMatriceGrafici(serie1,serie2,labels,num_graf):
                     graf[i][z].set_ylabel(labels[1], fontsize=10)
                     #graf[i][z].legend()
                     graf[i][z].grid()
-        plt.tight_layout()
+        #plt.tight_layout()
         plt.show()
     else:
         print(
@@ -420,7 +451,7 @@ def creaGrafico2D(x,y, labels_dati, split):
     split = int(split * 24)
     #print(bcolors.OKBLUE + "In creazione..." + bcolors.ENDC)
     if type(split) == int and split > 0:
-        fig, graf = plt.subplots(1,2, sharex=True, sharey=True)
+        fig, graf = plt.subplots(1,2, sharex=True, sharey=True, constrained_layout=True)
         graf[0].scatter(x[:-split], y[:-split], c=np.arange(len(x[:-split])), linestyle='None',
                         marker='x', alpha=0.4)
         graf[0].set_xlabel(labels_dati[0], fontsize=15)
@@ -440,7 +471,7 @@ def creaGrafico2D(x,y, labels_dati, split):
         plt.ylabel(labels_dati[1])
         plt.legend()
         plt.grid()
-    plt.tight_layout()
+    #plt.tight_layout()
     plt.show()
 
 
@@ -558,7 +589,7 @@ def analizzaDati(serie, tipo_analisi, labels_dati):
                     #Ora devo creare il grafico
                     x_train = matrice_interessata[label_tem[0]][:-giorni_analisi]
                     y_train = matrice_interessata[label_tem[1]][:-giorni_analisi]
-                    fig, graf = plt.subplots(1, 2, sharex= True, sharey= True)
+                    fig, graf = plt.subplots(1, 2, sharex= True, sharey= True, constrained_layout=True)
                     graf[0].scatter(x_train, y_train, c=np.arange(len(x_train)), linestyle='None',
                                     marker='x', alpha=0.4)
                     graf[0].set_xlabel(label_tem[0], fontsize=15)
@@ -572,7 +603,7 @@ def analizzaDati(serie, tipo_analisi, labels_dati):
                     graf[1].grid()
                     graf[1].set_title(f"Periodo di confronto di {int(giorni_analisi/24)} giorni, disc = "
                                       f"{soglia_discostamento}")
-                    plt.tight_layout()
+                    #plt.tight_layout()
                     plt.show()
                     #print(indici)
                 else:
@@ -663,16 +694,16 @@ def starter(autoinserimento):
         print(Back.RED + Fore.LIGHTWHITE_EX + "IN FASE DI SVILUPPO ---- NON USARLA" + Style.RESET_ALL)
         creaPluriMatriceGraf(dati,labels=labels_dati, num_graf=12)
     elif tipo_metodo == 'z' or tipo_metodo == 'Z':
-        confrontaDueSerie(dati,labels_dati)
+        confrontaSerieMultiple(dati, labels_dati)
     else:
         print("Nessun metodo trovato...")
         exit()
 
 
 if __name__ == "__main__":
-    versione("0.0.6", "26/11/2021")
+    versione("0.0.7", "27/11/2021")
     print("_" * 110)
-    print("\n"
+    print(Back.WHITE + Fore.BLACK + "\n"
             "#####                                                         ##### \n"
             "#     # #####  ######   ##   #####  ####  #####  ######       #     # #####    ##   ###### #  ####  # \n"
             "#       #    # #       #  #    #   #    # #    # #            #       #    #  #  #  #      # #    # # \n"
@@ -680,7 +711,7 @@ if __name__ == "__main__":
             "#       #####  #      ######   #   #    # #####  #            #     # #####  ###### #      # #      # \n"
             "#     # #   #  #      #    #   #   #    # #   #  #            #     # #   #  #    # #      # #    # # \n"
             " #####  #    # ###### #    #   #    ####  #    # ######        #####  #    # #    # #      #  ####  # ")
-    print("_" * 110)
+    print( Style.RESET_ALL + "_" * 110)
     '''    logo = open("logo.txt", "r")
     for i in logo.readlines():
         print(i)'''
