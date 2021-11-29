@@ -53,6 +53,29 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
         print()
 
 
+'''Dividi file csv in anni'''
+def dividi_in_anni(dati, targa):
+    divisione_anni = []
+    tmp = []
+    anno_base = dati[0][0][:4]
+    for i in range(len(dati)):
+        if dati[i][0][:4] != anno_base:
+            divisione_anni.append(tmp)
+            tmp = []
+            tmp.append(dati[i])
+            anno_base = dati[i][0][:4]
+        else:
+            tmp.append(dati[i])
+    for i in range(len(divisione_anni)):
+        f = open(targa+f' - {divisione_anni[i][0][0][:4]}.csv', 'w', newline='')
+        scrittore = csv.writer(f)
+        for z in range(len(divisione_anni[i])):
+            if z == 0:
+                scrittore.writerow(["Data", "Misura"])
+            scrittore.writerow(divisione_anni[i][z])
+    f.close()
+
+
 '''Metodo per aprire i file csv'''
 def apri_file_csv(nome_file):
     '''Controlla che esiste il file nella cartella locale'''
@@ -405,47 +428,6 @@ def creaMatriceGrafici(serie1,serie2,labels,num_graf):
         exit()
 
 
-def creaPluriMatriceGraf(*serie, labels, num_graf):
-    x, y_multiple, y = [], [], []
-    x_data, y_multpile_data, y_data = [], [], []
-    serie = serie[0]
-    confronta_dim(serie)
-    for i in range(len(serie)):
-        for z in range(len(serie[i])):
-            if i == 0:
-                x_data.append(serie[i][z][0])
-                x_data[i] = x_data[i][:10]
-                if serie[i][z][1] == '':
-                    x.append(float())
-                else:
-                    x.append(float(serie[i][z][1]))
-            else:
-                y_data.append(serie[i][z][0])
-                if serie[i][z][1] == '':
-                    y.append(float())
-                else:
-                    y.append(float(serie[i][z][1]))
-        if y != []:
-            print(i)
-            y_multpile_data.append(y_data)
-            y_data = []
-            y_multiple.append(y)
-            y = []
-    fig = plt.figure()
-    ax1 = fig.add_subplot(111)
-    for i in range(len(y_multiple)):
-        r = random.random()
-        b = random.random()
-        g = random.random()
-        time.sleep(1)
-        colore = (r, g, b)
-        ax1.scatter(x,y_multiple[i], c=colore, label=f"{labels[i + 1]}", marker='x', alpha=0.4)
-        ax1.set_xlabel(labels[0], fontsize=15)
-        ax1.set_title("Confronto fra due misure")
-    plt.legend()
-    plt.show()
-
-
 def creaGrafico2D(x,y, labels_dati, split):
     # Trasformo i giorni in numero di punti dati
     split = int(split * 24)
@@ -620,7 +602,6 @@ def analizzaDati(serie, tipo_analisi, labels_dati):
 def autoInserimentoDati():
     nome_files = []
     for file in os.listdir():
-        #print(file[-3:])
         if file[-3:] == "csv":
             nome_files.append(file)
         else:
@@ -630,8 +611,8 @@ def autoInserimentoDati():
 
 def starter(autoinserimento):
     tipo_metodi = ["Matrice (premi 'm')", "Analizzatore (premi 'a')",
-                   "Permutazioni (premi 'p')", "Confronta più serie (premi 'c')",
-                   "Stesse x, diverse y (premi z)"]
+                   "Permutazioni (premi 'p')","Stesse x, diverse y (premi 'z')",
+                                              "Divivi file csv in anni (premi 'd')"]
     flag_inserisci_file = 0
     dati = []
     labels_dati = []
@@ -689,19 +670,30 @@ def starter(autoinserimento):
         num_giorni_analisi = int(input(bcolors.HEADER + "Inserisci il numero di giorni di analisi: "
                                        + bcolors.ENDC))
         creaPermutazioni(dati,labels_dati,num_giorni_analisi)
-    elif tipo_metodo == "Confronta" or tipo_metodo == "confronta" or tipo_metodo == 'C' or tipo_metodo == 'c':
-        #TODO: Scegli la serie di dati per il confronto
-        print(Back.RED + Fore.LIGHTWHITE_EX + "IN FASE DI SVILUPPO ---- NON USARLA" + Style.RESET_ALL)
-        creaPluriMatriceGraf(dati,labels=labels_dati, num_graf=12)
     elif tipo_metodo == 'z' or tipo_metodo == 'Z':
         confrontaSerieMultiple(dati, labels_dati)
+    elif tipo_metodo == 'd' or tipo_metodo == 'D':
+        nome_files = autoInserimentoDati()
+        for i in range(len(nome_files)):
+            print(Back.WHITE + Fore.BLACK + "#" + str(i + 1) + f" - {nome_files[i]}")
+        scelta = int(input("Scegli quale file csv estrarre: "))
+        if scelta - 1 >= 0 and scelta - 1 <= len(nome_files):
+            scelta = scelta - 1
+            print(f"Estrazione di {nome_files[scelta]} in corso...")
+            a = apri_file_csv(nome_files[scelta])
+            dati = a[0]
+            targa = a[1]
+            dividi_in_anni(dati, targa)
+            print(Style.RESET_ALL)
+        else:
+            print("Numero non valido!")
     else:
         print("Nessun metodo trovato...")
         exit()
 
 
 if __name__ == "__main__":
-    versione("0.0.7", "27/11/2021")
+    versione("0.0.8", "29/11/2021")
     print("_" * 110)
     print(Back.WHITE + Fore.BLACK + "\n"
             "#####                                                         ##### \n"
