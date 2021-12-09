@@ -5,7 +5,9 @@ import os.path
 import random
 import pandas as pd
 import matplotlib.pyplot as plt
+plt.rcParams["toolbar"] = "toolmanager"
 from matplotlib.widgets import Slider, Button, RadioButtons
+from matplotlib.backend_tools import ToolBase, ToolToggleBase
 import numpy as np
 import seaborn as sn
 import  time
@@ -159,6 +161,7 @@ def estraiGiorni(serie):
 
 
 def confrontaSerieMultiple(serie, labels_dati):
+
     colonne = []
     date = []
     for i in range(len(serie)):
@@ -233,9 +236,74 @@ def confrontaSerieMultiple(serie, labels_dati):
     righe = 3
     colonne = 4
     fig, graf = plt.subplots(righe, colonne, sharex=True, sharey=True, constrained_layout=True)
+
+    # Illumina il grafico selezionato e creane uno nuovo
+    def ispezionaAzione(event):
+        # print("Entrato nell'asse: ", event.inaxes)
+        event.inaxes.patch.set_facecolor((0.972, 0.772, 0.549))
+        event.canvas.draw()
+        '''x = event.inaxes.lines[0].get_xdata()
+        y = event.inaxes.lines[0].get_ydata()'''
+        riferimento_1 = event.inaxes.collections[0]._offsets
+        riferimento_2 = event.inaxes.collections[1]._offsets
+        # print(y)
+        # print(event.inaxes.lines[0].get_xdata())
+        x1_temp, y1_temp, x2_temp, y2_temp, x3_temp, y3_temp = [], [], [], [], [], []
+        for i in range(len(riferimento_1)):
+            x1_temp.append(riferimento_1[i][0])
+            y1_temp.append(riferimento_1[i][1])
+        for i in range(len(riferimento_2)):
+            x2_temp.append(riferimento_2[i][0])
+            y2_temp.append(riferimento_2[i][1])
+        fig, zoom_graf = plt.subplots(1, 1, sharex=True, sharey=True)
+        zoom_graf.scatter(x1_temp, y1_temp, c='blue',
+                          linestyle='None', marker='x', label=labels_dati[scelta_y1],
+                          alpha=0.4)
+        zoom_graf.scatter(x2_temp, y2_temp, c='red',
+                          linestyle='None', marker='x', label=labels_dati[scelta_y2],
+                          alpha=0.4)
+        if scelta_num_confronti == 3:
+            riferimento_3 = event.inaxes.collections[2]._offsets
+            for i in range(len(riferimento_3)):
+                x3_temp.append(riferimento_3[i][0])
+                y3_temp.append(riferimento_3[i][1])
+            zoom_graf.scatter(x3_temp, y3_temp, c='green',
+                              linestyle='None', marker='x', label=labels_dati[scelta_y3],
+                              alpha=0.4)
+        plt.legend()
+        plt.grid()
+        plt.show()
+
+    def leave_axes(event):
+        #print("Uscito dall'asse: ", event.inaxes)
+        event.inaxes.patch.set_facecolor('white')
+        event.canvas.draw()
+
+    #Ripristina il colore dopo aver lasciato il grafico
+    fig.canvas.mpl_connect('axes_leave_event', leave_axes)
+
+    #Classe per il pulsante custom ispeziona
+    class PulsanteIspeziona(ToolToggleBase):
+        image = r"ispeziona.png"
+        description = 'Seleziona un grafico da isolare'
+        default_toggled = False
+        def enable(self, event=None):
+            print("Pronto")
+            self.mouse_clikkato_id = fig.canvas.mpl_connect('button_press_event', ispezionaAzione)
+        def disable(self, event=None):
+            print("No")
+            fig.canvas.mpl_disconnect(self.mouse_clikkato_id)
+
+
+    # Toolmanager, inserisci il botone
+    tm = fig.canvas.manager.toolmanager
+    tm.add_tool("ispeziona", PulsanteIspeziona)
+    fig.canvas.manager.toolbar.add_tool(tm.get_tool("ispeziona"), "toolgroup")
+
     start = 0
     delta = int(len(x) / 12) #8784 punti per un anno
     #delta = int(8784/12)
+
     for i in range(righe):
         for z in range(colonne):
             #try:
@@ -322,8 +390,6 @@ def confrontaSerieMultiple(serie, labels_dati):
                 graf[i][z].grid()'''
     '''pienoSchermo = plt.get_current_fig_manager()
     pienoSchermo.full_screen_toggle()'''
-    #plt.tight_layout()
-    #plt.legend()
     #TODO:
     '''if scelta_num_confronti == 3:
         plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
@@ -331,7 +397,8 @@ def confrontaSerieMultiple(serie, labels_dati):
     else:
         plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
                    ncol=2, mode="expand", borderaxespad=0.)'''
-    plt.legend()
+
+    leg = plt.legend()
     plt.show()
 
 
@@ -358,9 +425,10 @@ def creaMatriceGrafici(serie1,serie2,labels,num_graf):
     if type(num_graf) == int and num_graf > 0 and num_graf <= 12:
         if num_graf == 1:
             fig, graf = plt.subplots(1, 1, sharex=True, sharey=True)
-            graf.scatter(x,y, c=colore_storico, cmap='viridis', linestyle='None', label=labels[1], marker='x', alpha=0.4)
+            im = graf.scatter(x,y, c=colore_storico, cmap='viridis', linestyle='None', label=labels[1], marker='x', alpha=0.4)
             graf.set_xlabel(labels[0], fontsize=15)
             graf.set_ylabel(labels[1], fontsize=15)
+            plt.colorbar(im, ax=graf)
             #graf.legend()
             graf.grid()
             plt.show()
@@ -693,7 +761,7 @@ def starter(autoinserimento):
 
 
 if __name__ == "__main__":
-    versione("0.0.8", "29/11/2021")
+    versione("0.0.9", "09/12/2021")
     print("_" * 110)
     print(Back.WHITE + Fore.BLACK + "\n"
             "#####                                                         ##### \n"
