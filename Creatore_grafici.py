@@ -244,11 +244,18 @@ def confrontaSerieMultiple(serie, labels_dati):
         event.canvas.draw()
         '''x = event.inaxes.lines[0].get_xdata()
         y = event.inaxes.lines[0].get_ydata()'''
+        #TODO: Aggiungere informazioni in questo grafico, tipo la media, la deviazione, etc.
         riferimento_1 = event.inaxes.collections[0]._offsets
         riferimento_2 = event.inaxes.collections[1]._offsets
+        # Per ricavare il titolo del grafico
+        titolo = str(event.inaxes.title)
+        titolo = titolo.split("'")[1]
+        # Per le linee della media
+        linee = event.inaxes.lines
         # print(y)
         # print(event.inaxes.lines[0].get_xdata())
         x1_temp, y1_temp, x2_temp, y2_temp, x3_temp, y3_temp = [], [], [], [], [], []
+        x_linea, y_linea = [],[]
         for i in range(len(riferimento_1)):
             x1_temp.append(riferimento_1[i][0])
             y1_temp.append(riferimento_1[i][1])
@@ -262,6 +269,10 @@ def confrontaSerieMultiple(serie, labels_dati):
         zoom_graf.scatter(x2_temp, y2_temp, c='red',
                           linestyle='None', marker='x', label=labels_dati[scelta_y2],
                           alpha=0.4)
+        for i in range(len(linee)):
+            zoom_graf.plot(linee[i].get_xdata(), linee[i].get_ydata())
+
+        zoom_graf.set_title(titolo)
         if scelta_num_confronti == 3:
             riferimento_3 = event.inaxes.collections[2]._offsets
             for i in range(len(riferimento_3)):
@@ -342,7 +353,7 @@ def confrontaSerieMultiple(serie, labels_dati):
                     Back.WHITE + Fore.GREEN + f'Deviazione di {labels_dati[scelta_y3]}: {np.nanvar(y3[start:(start + delta)])}' + Style.RESET_ALL)
             print(f"Delta media {labels_dati[scelta_y1]} - {labels_dati[scelta_y2]} = "
                                             f"{np.nanmean(y[start:(start + delta)]) - np.nanmean(y2[start:(start + delta)])}")
-            #Lineee della media
+            #Linee della media
             y_media = np.full((len(x),1), np.nanmean(y[start:(start + delta)]))
             graf[i][z].plot(x, y_media, c='blue', label=f'Media di {labels_dati[scelta_y1]}', linestyle='--', alpha= 0.5)
             y2_media = np.full((len(x), 1), np.nanmean(y2[start:(start + delta)]))
@@ -763,7 +774,7 @@ def starter(autoinserimento):
 if __name__ == "__main__":
     versione("0.0.9", "09/12/2021")
     print("_" * 110)
-    print(Back.WHITE + Fore.BLACK + "\n"
+    print(Back.WHITE + Fore.BLACK + "\n"    
             "#####                                                         ##### \n"
             "#     # #####  ######   ##   #####  ####  #####  ######       #     # #####    ##   ###### #  ####  # \n"
             "#       #    # #       #  #    #   #    # #    # #            #       #    #  #  #  #      # #    # # \n"
