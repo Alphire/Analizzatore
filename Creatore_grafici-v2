@@ -1,0 +1,368 @@
+import csv
+import math
+import os
+import os.path
+import random
+
+import matplotlib.artist
+import pandas as pd
+import matplotlib.pyplot as plt
+import mplcursors
+plt.rcParams["toolbar"] = "toolmanager"
+from matplotlib.widgets import Slider, Button, RadioButtons
+from matplotlib.backend_tools import ToolBase, ToolToggleBase
+import numpy as np
+import seaborn as sn
+import  time
+from sklearn.linear_model import BayesianRidge
+from colorama import init ,Fore, Back, Style
+init()
+
+nome_mesi = ['Gennaio',
+        'Febbraio',
+        'Marzo',
+        'Aprile',
+        'Maggio',
+        'Giugno',
+        'Luglio',
+        'Agosto',
+        'Settembre',
+        'Ottobre',
+        'Novembre',
+        'Dicembre']
+
+'''Settings per i colori dell'output'''
+class bcolors:
+    HEADER = Fore.LIGHTYELLOW_EX
+    OKBLUE = Fore.BLUE
+    OKCYAN = Fore.CYAN
+    OKGREEN = Fore.GREEN
+    WARNING = Fore.LIGHTYELLOW_EX
+    FAIL = Fore.RED
+    ENDC = Style.RESET_ALL
+
+
+def versione(num, giorno):
+    print(Back.WHITE + Fore.BLACK + f"Versione {num} --- Del giorno : {giorno}" + Style.RESET_ALL)
+    print(Back.LIGHTWHITE_EX + Fore.BLACK + "Di Alberto Bonetti" + Style.RESET_ALL)
+
+
+''' Trasforma la data inglese nel formato italiano '''
+def trasformaData(data_originale):
+    data = data_originale[:10]
+    giorno = data[-2:]
+    mese = data[-5:-3]
+    anno = data[:4]
+    data_finale = giorno + '-' + mese + '-' + anno + data_originale[-9:]
+    return data_finale
+
+'''Dividi file csv in anni'''
+def dividi_in_anni(dati, targa):
+    divisione_anni = []
+    tmp = []
+    anno_base = dati[0][0][:4]
+    for i in range(len(dati)):
+        if dati[i][0][:4] != anno_base:
+            divisione_anni.append(tmp)
+            tmp = []
+            tmp.append(dati[i])
+            anno_base = dati[i][0][:4]
+        else:
+            tmp.append(dati[i])
+    for i in range(len(divisione_anni)):
+        f = open(targa+f' - {divisione_anni[i][0][0][:4]}.csv', 'w', newline='')
+        scrittore = csv.writer(f)
+        for z in range(len(divisione_anni[i])):
+            if z == 0:
+                scrittore.writerow(["Data", "Misura"])
+            scrittore.writerow(divisione_anni[i][z])
+    f.close()
+
+
+'''Metodo per aprire i file csv'''
+def apri_file_csv(nome_file):
+    '''Controlla che esiste il file nella cartella locale'''
+    if os.path.isfile(nome_file) == True:
+        nome_file = str(nome_file)
+        #Prendi la targhetta per sapere il nome della variabile
+        label = nome_file.removesuffix(".csv")
+        print(Back.BLUE + "In apertura di %s" %nome_file + Style.RESET_ALL)
+        with open(nome_file, newline='') as file_csv:
+            lettore_csv = csv.reader(file_csv, delimiter=',')
+            next(lettore_csv, None)
+            arr = []
+            for row in lettore_csv:
+                arr.append(row)
+            print(bcolors.OKCYAN + "Dimensionalità del file: %i punti" %len(arr) + bcolors.ENDC)
+            giorni = int(len(arr)/24)
+            print(bcolors.OKCYAN + "Tradotto in giorni --> circa %i" %giorni + "gg" + bcolors.ENDC)
+            print(Back.WHITE + "-" * 100 + Style.RESET_ALL)
+            return arr, label
+    else:
+        print(bcolors.FAIL + "Non sembra esserci alcun file il nome: '%s" %nome_file + "'" +  bcolors.ENDC)
+        print(bcolors.WARNING + "Ricorda di inserire il nome completo del file, compreso il '.csv'" + bcolors.ENDC)
+        exit()
+
+
+def confronta_tempi(arr):
+    '''Controllo delle dimensioni'''
+    flag_err_date, flag_err_dim = False, False
+    for i in range(len(arr)):
+        try:
+            if len(arr[i]) == len(arr[i+1]):
+                pass
+            else:
+                flag_err_dim = True
+        except:
+            pass
+    '''Controllo delle date'''
+    for i in range(len(arr)):
+        for z in range(len(arr[0])):
+            try:
+                if arr[i][z][0] == arr[i+1][z][0]:
+                    pass
+                else:
+                    flag_err_date = True
+            except:
+                pass
+    if flag_err_date == True:
+        print(bcolors.FAIL + "Errore: Le date non corrispondono" + bcolors.ENDC)
+    if flag_err_dim == True:
+        print(bcolors.FAIL + "Errore: Dimensioni non rispettate fra i file csv" + bcolors.ENDC)
+
+
+def confronta_dim(*arr):
+    for i in range(len(arr)):
+        if (i + 1) < len(arr):
+            if len(arr[i]) == len(arr[i+1]):
+                pass
+            else:
+                print(bcolors.FAIL + f"Errore: Dimensionalità non corrisponde"
+                                     f"\nDimensioni discordanti --> {len(arr[i])} != {len(arr[i+1])}" + bcolors.ENDC)
+
+
+def estraiDati(serie):
+    colonna = []
+    for i in range(len(serie)):
+        try:
+            if serie[i][1] == '':
+                colonna.append(float(0))
+            else:
+                colonna.append(float(serie[i][1]))
+        except:
+            colonna.append(float(0))
+    return colonna
+
+
+def estraiGiorni(serie):
+    colonna = []
+    for i in range(len(serie)):
+        colonna.append(str(serie[i][0]))
+    return colonna
+
+
+# TODO: Trovare il modo di passare anche le date ai punti dati.
+def confrontaSerieMultiple(serie, labels_dati):
+    # Estrazione dati e creazione matrice
+    colonne, nome_colonne = [], []
+    for i in range(len(serie)):
+        colonne.append(estraiDati(serie[i]))
+        colonne.append(estraiGiorni(serie[i]))
+    matrice = pd.DataFrame(colonne).transpose()
+    for i in range(len(labels_dati)):
+        nome_colonne.append(labels_dati[i])
+        nome_colonne.append('Data di ' + str(labels_dati[i]))
+    matrice.columns = nome_colonne
+
+    # Scelta dei dati da plottare
+    for i in range(len(labels_dati)):
+        print(bcolors.HEADER + "#" + str(i + 1) + f" = {labels_dati[i]}" + bcolors.ENDC)
+    scelta_num_confronti = int(input(bcolors.HEADER + "Quante serie vuoi inserire? 2 o 3? " +bcolors.ENDC))
+    scelta_x1 = str(input(
+        bcolors.HEADER + "SETTAGGIO DI X1 --> Inserisci il numero identificativo del set di dati da utilizzare: "
+        + bcolors.ENDC))
+    scelta_y1 = str(input(
+        bcolors.HEADER + "SETTAGGIO DI Y1 --> Inserisci il numero identificativo del set di dati da utilizzare: "
+        + bcolors.ENDC))
+    scelta_x2 = str(input(
+        bcolors.HEADER + "SETTAGGIO DI X2 --> Inserisci il numero identificativo del set di dati da utilizzare: "
+        + bcolors.ENDC))
+    scelta_y2 = str(input(
+        bcolors.HEADER + "SETTAGGIO DI Y2 --> Inserisci il numero identificativo del set di dati da utilizzare: "
+        + bcolors.ENDC))
+    if scelta_num_confronti == 3:
+        scelta_x3 = str(input(
+            bcolors.HEADER + "SETTAGGIO DI X3 --> Inserisci il numero identificativo del set di dati da utilizzare: "
+            + bcolors.ENDC))
+        scelta_y3 = str(input(
+            bcolors.HEADER + "SETTAGGIO DI Y3 --> Inserisci il numero identificativo del set di dati da utilizzare: "
+            + bcolors.ENDC))
+
+    # Treshold utilizzato per impostare i dati a nan al di sotto della suddetta
+    treshold = float(input(bcolors.HEADER + "Soglia usata per eliminare i punti al di sotto di un certo valore di x: "
+                           + bcolors.ENDC))
+    if int(scelta_x1)-1 >= 0 and int(scelta_x1)-1 <= len(labels_dati):
+        scelta_x1 = labels_dati[int(scelta_x1)-1]
+    if int(scelta_x2) - 1 >= 0 and int(scelta_x2) - 1 <= len(labels_dati):
+        scelta_x2 = labels_dati[int(scelta_x2)-1]
+    if scelta_num_confronti == 3:
+        if int(scelta_x3) - 1 >= 0 and int(scelta_x3) - 1 <= len(labels_dati):
+            scelta_x3 = labels_dati[int(scelta_x3)-1]
+        if int(scelta_y3) - 1 >= 0 and int(scelta_y3) - 1 <= len(labels_dati):
+            scelta_y3 = labels_dati[int(scelta_y3)-1]
+    if int(scelta_y1)-1 >= 0 and int(scelta_y1)-1 <= len(labels_dati):
+        scelta_y1 = labels_dati[int(scelta_y1)-1]
+    if int(scelta_y2)-1 >= 0 and int(scelta_y2)-1 <= len(labels_dati):
+        scelta_y2 = labels_dati[int(scelta_y2)-1]
+
+    # Elimina dalla matrice i valori al di sotto del treshold
+    indexNames = matrice[matrice[scelta_x1] <= treshold].index
+    matrice.loc[indexNames,scelta_y1] = np.nan
+    indexNames = matrice[matrice[scelta_x2] <= treshold].index
+    matrice.loc[indexNames, scelta_y2] = np.nan
+    if scelta_num_confronti == 3:
+        indexNames = matrice[matrice[scelta_x3] <= treshold].index
+        matrice.loc[indexNames, scelta_y3] = np.nan
+
+    righe = 3
+    colonne = 4
+    start_serie1 = 0
+    start_serie2 = 0
+    start_serie3 = 0
+    mese = 2
+    contatore = 0
+    mese_corrente = '02-01 00:00:00' # 2019-01-01 00:00:00
+    fig, ax = plt.subplots(righe, colonne, sharex=True, sharey=True, constrained_layout=True)
+    # TODO: Aggiungere anche le altre serie
+    artisti = []
+    tmp_serie1, tmp_serie2, tmp_serie3 = [], [], []
+    for r in range(righe):
+        for c in range(colonne):
+            anno_corrente_serie1 = matrice['Data di ' + scelta_x1][0][:4]
+            anno_corrente_serie2 = matrice['Data di ' + scelta_x2][0][:4]
+            if scelta_num_confronti == 3:
+                anno_corrente_serie3 = matrice['Data di ' + scelta_x3][0][:4]
+            try:
+                indici_mese_corrente_serie1 = matrice[
+                    matrice['Data di ' + scelta_x1] == anno_corrente_serie1 + '-' + mese_corrente].index[0]
+            except:
+                indici_mese_corrente_serie1 = -1
+            try:
+                indici_mese_corrente_serie2 = matrice[
+                    matrice['Data di ' + scelta_x2] == anno_corrente_serie2 + '-' + mese_corrente].index[0]
+            except:
+                indici_mese_corrente_serie2 = -1
+
+            if scelta_num_confronti == 3:
+                try:
+                    indici_mese_corrente_serie3 = matrice[
+                        matrice['Data di ' + scelta_x3] == anno_corrente_serie3 + '-' + mese_corrente].index[0]
+                except:
+                    indici_mese_corrente_serie3 = -1
+
+            ax[r][c].scatter(matrice[scelta_x1][start_serie1:indici_mese_corrente_serie1],
+                             matrice[scelta_y1][start_serie1:indici_mese_corrente_serie1], alpha=0.4, marker='.')
+            ax[r][c].scatter(matrice[scelta_x2][start_serie2:indici_mese_corrente_serie2],
+                             matrice[scelta_y2][start_serie2:indici_mese_corrente_serie2], alpha=0.4, marker='.')
+            if scelta_num_confronti == 3:
+                ax[r][c].scatter(matrice[scelta_x3][start_serie3:indici_mese_corrente_serie3],
+                                 matrice[scelta_y3][start_serie3:indici_mese_corrente_serie3], alpha=0.4, marker='.')
+            ax[r][c].grid()
+            ax[r][c].set_title(nome_mesi[contatore])
+            contatore += 1
+            artisti.append(ax[r][c].collections)
+            tmp_serie1.append(start_serie1)
+            tmp_serie2.append(start_serie2)
+            if scelta_num_confronti == 3:
+                tmp_serie3.append(start_serie3)
+
+            #artisti.append(ax[r][c].collections)
+            start_serie1 = indici_mese_corrente_serie1
+            start_serie2 = indici_mese_corrente_serie2
+            if scelta_num_confronti == 3:
+                start_serie3 = indici_mese_corrente_serie3
+            mese = mese + 1
+            if mese < 10:
+                mese_corrente = '0' + str(mese) + '-01 00:00:00'
+            else:
+                mese_corrente = str(mese) + '-01 00:00:00'
+
+    # Finale è la matrice che contiene gli indici finali di ogni mese per la serie con la relativa collezione
+    # sel.artist = collezione
+    finale = pd.DataFrame(tmp_serie1).transpose()
+    if scelta_num_confronti == 3:
+        finale = pd.DataFrame([tmp_serie1,tmp_serie2,tmp_serie3]).transpose()
+    artisti_2 = []
+    for i in range(len(artisti)):
+        artisti_2.append(artisti[i][0])
+    finale.columns = artisti_2
+    # Aggiungi il testo al punto
+    #TODO: trovare il modo di aggiungere le annotazioni anche per le altre serie.
+    mplcursors.cursor().connect(
+        "add", lambda sel: sel.annotation.set_text(
+            f'Data: {trasformaData(matrice["Data di "+ scelta_y1][sel.index + finale[sel.artist][0]])[:10]} ore:'
+            f'{trasformaData(matrice["Data di "+ scelta_y1][sel.index + finale[sel.artist][0]])[-8:-3]}\n'
+            f'x: {matrice[scelta_x1][sel.index + finale[sel.artist][0]]}  y: {matrice[scelta_y1][sel.index + finale[sel.artist][0]]}'
+        )
+    )
+    #mplcursors.cursor(hover=2)
+    plt.show()
+
+
+'''Inserisci tutti i file .csv presenti nella cartella del programma'''
+def autoInserimentoDati():
+    nome_files = []
+    for file in os.listdir():
+        if file[-3:] == "csv":
+            nome_files.append(file)
+        else:
+            pass
+    return nome_files
+
+
+def starter(autoinserimento):
+    tipo_metodi = ["Matrice (premi 'm')", "Analizzatore (premi 'a')",
+                   "Permutazioni (premi 'p')","Stesse x, diverse y (premi 'z')",
+                                              "Divivi file csv in anni (premi 'd')"]
+    flag_inserisci_file = 0
+    dati = []
+    labels_dati = []
+    #Inserimento dei file
+    if autoinserimento == 1:
+        files = autoInserimentoDati()
+        print(bcolors.WARNING + str(files) + bcolors.ENDC)
+        for i in range(len(files)):
+            a = apri_file_csv(files[i])
+            dati.append(a[0])
+            labels_dati.append(a[1])
+    else:
+        print(bcolors.WARNING + "Inserisici per primo il dataset di riferimento (quello comune a tutti)" + bcolors.ENDC)
+        while flag_inserisci_file == 0:
+            nom_file = input("Nome del file da aprire: ")
+            a = apri_file_csv(nom_file)
+            dati.append(a[0])
+            labels_dati.append(a[1])
+            continua = input(bcolors.HEADER + "Vuoi inserire altri files? [Sì - premi 's']  [No - premi 'n']" +
+                             bcolors.ENDC + "\n")
+            if continua == 's':
+                pass
+            else:
+                flag_inserisci_file = 1
+    confronta_tempi(dati)
+    # Scelta del metodo
+    confrontaSerieMultiple(dati, labels_dati)
+
+
+if __name__ == "__main__":
+    versione("0.0.9", "09/12/2021")
+    print("_" * 110)
+    print(Back.WHITE + Fore.BLACK + "\n"    
+            "#####                                                         ##### \n"
+            "#     # #####  ######   ##   #####  ####  #####  ######       #     # #####    ##   ###### #  ####  # \n"
+            "#       #    # #       #  #    #   #    # #    # #            #       #    #  #  #  #      # #    # # \n"
+            "#       #    # #####  #    #   #   #    # #    # #####        #  #### #    # #    # #####  # #      # \n"
+            "#       #####  #      ######   #   #    # #####  #            #     # #####  ###### #      # #      # \n"
+            "#     # #   #  #      #    #   #   #    # #   #  #            #     # #   #  #    # #      # #    # # \n"
+            " #####  #    # ###### #    #   #    ####  #    # ######        #####  #    # #    # #      #  ####  # ")
+    print( Style.RESET_ALL + "_" * 110)
+    starter(1)
