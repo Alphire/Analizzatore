@@ -233,7 +233,7 @@ def confrontaSerieMultiple(serie, labels_dati):
     contatore = 0
     mese_corrente = '02-01 00:00:00' # 2019-01-01 00:00:00
     fig, ax = plt.subplots(righe, colonne, sharex=True, sharey=True, constrained_layout=True)
-    # TODO: Aggiungere anche le altre serie
+
     artisti = []
     tmp_serie1, tmp_serie2, tmp_serie3 = [], [], []
     for r in range(righe):
@@ -287,25 +287,64 @@ def confrontaSerieMultiple(serie, labels_dati):
             else:
                 mese_corrente = str(mese) + '-01 00:00:00'
 
+    ''' Preparazione per le annotazioni '''
     # Finale è la matrice che contiene gli indici finali di ogni mese per la serie con la relativa collezione
     # sel.artist = collezione
-    finale = pd.DataFrame(tmp_serie1).transpose()
-    if scelta_num_confronti == 3:
-        finale = pd.DataFrame([tmp_serie1,tmp_serie2,tmp_serie3]).transpose()
-    artisti_2 = []
+    finale_serie_1 = pd.DataFrame(tmp_serie1).transpose()
+    finale_serie_2 = pd.DataFrame(tmp_serie2).transpose()
+    finale_serie_3 = pd.DataFrame(tmp_serie3).transpose()
+    artisti_serie1, artisti_serie2, artisti_serie3 = [], [], []
     for i in range(len(artisti)):
-        artisti_2.append(artisti[i][0])
-    finale.columns = artisti_2
-    # Aggiungi il testo al punto
-    #TODO: trovare il modo di aggiungere le annotazioni anche per le altre serie.
+        artisti_serie1.append(artisti[i][0])
+        artisti_serie2.append(artisti[i][1])
+        if scelta_num_confronti == 3:
+            artisti_serie3.append(artisti[i][2])
+
+    finale_serie_1.columns = artisti_serie1
+    finale_serie_2.columns = artisti_serie2
+    if scelta_num_confronti == 3:
+        finale_serie_3.columns = artisti_serie3
+
+
+    ''' Per aggiungere le annotazioni ai pnti delle serie '''
+    def connessione_serie(sel):
+        finali_serie = [finale_serie_1,finale_serie_2]
+        if scelta_num_confronti == 3:
+            finali_serie.append(finale_serie_3)
+        for i in range(len(finali_serie)):
+            try:
+                if finali_serie[i][sel.artist].any() == True:
+                    serie_selezionata = i
+            except:
+                pass
+
+        if serie_selezionata == 0:
+            sel.annotation.get_bbox_patch().set(fc="blue")
+            sel.annotation.set_text(
+                f'Data: {trasformaData(matrice["Data di " + scelta_y1][sel.index + finale_serie_1[sel.artist][0]])[:10]} ore:'
+                f'{trasformaData(matrice["Data di " + scelta_y1][sel.index + finale_serie_1[sel.artist][0]])[-8:-3]}\n'
+                f'x: {matrice[scelta_x1][sel.index + finale_serie_1[sel.artist][0]]}  y: {matrice[scelta_y1][sel.index + finale_serie_1[sel.artist][0]]}'
+            )
+        elif serie_selezionata == 1:
+            sel.annotation.get_bbox_patch().set(fc="orange")
+            sel.annotation.set_text(
+                f'Data: {trasformaData(matrice["Data di " + scelta_y2][sel.index + finale_serie_2[sel.artist][0]])[:10]} ore:'
+                f'{trasformaData(matrice["Data di " + scelta_y2][sel.index + finale_serie_2[sel.artist][0]])[-8:-3]}\n'
+                f'x: {matrice[scelta_x2][sel.index + finale_serie_2[sel.artist][0]]}  y: {matrice[scelta_y2][sel.index + finale_serie_2[sel.artist][0]]}'
+            )
+        elif serie_selezionata == 2:
+            sel.annotation.get_bbox_patch().set(fc="green")
+            sel.annotation.set_text(
+                f'Data: {trasformaData(matrice["Data di " + scelta_y3][sel.index + finale_serie_3[sel.artist][0]])[:10]} ore:'
+                f'{trasformaData(matrice["Data di " + scelta_y3][sel.index + finale_serie_3[sel.artist][0]])[-8:-3]}\n'
+                f'x: {matrice[scelta_x3][sel.index + finale_serie_3[sel.artist][0]]}  y: {matrice[scelta_y3][sel.index + finale_serie_3[sel.artist][0]]}'
+            )
+
+
     mplcursors.cursor().connect(
-        "add", lambda sel: sel.annotation.set_text(
-            f'Data: {trasformaData(matrice["Data di "+ scelta_y1][sel.index + finale[sel.artist][0]])[:10]} ore:'
-            f'{trasformaData(matrice["Data di "+ scelta_y1][sel.index + finale[sel.artist][0]])[-8:-3]}\n'
-            f'x: {matrice[scelta_x1][sel.index + finale[sel.artist][0]]}  y: {matrice[scelta_y1][sel.index + finale[sel.artist][0]]}'
+        "add", lambda sel: connessione_serie(sel)
         )
-    )
-    #mplcursors.cursor(hover=2)
+
     plt.show()
 
 
