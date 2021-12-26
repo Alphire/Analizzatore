@@ -345,6 +345,65 @@ def confrontaSerieMultiple(serie, labels_dati):
         "add", lambda sel: connessione_serie(sel)
         )
 
+
+    # TOFIX: la serie 3 ispezionata non è corretta: aggiunge punti in mesi sbalgiati
+    # TODO: Inserire anche qua la nota delle date
+    def ispezionaAzione(event):
+        collezzioni_presenti = event.inaxes.collections
+        start_serie1 = finale_serie_1[collezzioni_presenti[0]][0]
+        start_serie2 = finale_serie_2[collezzioni_presenti[1]][0]
+        if scelta_num_confronti == 3:
+            start_serie3 = finale_serie_3[collezzioni_presenti[2]][0]
+        try:
+            nome_colonna_fine_serie1 = finale_serie_1.columns[finale_serie_1.columns.get_loc(collezzioni_presenti[0])+1]
+            fine_serie_1 = finale_serie_1[nome_colonna_fine_serie1][0]
+        except:
+            fine_serie_1 = -1
+        try:
+            nome_colonna_fine_serie2 = finale_serie_2.columns[finale_serie_2.columns.get_loc(collezzioni_presenti[1])+1]
+            fine_serie_2 = finale_serie_2[nome_colonna_fine_serie2][0]
+        except:
+            fine_serie_2 = -1
+        if scelta_num_confronti == 3:
+            try:
+                nome_colonna_fine_serie3 = finale_serie_3.columns[
+                    finale_serie_3.columns.get_loc(collezzioni_presenti[2]) + 1]
+                fine_serie_3 = finale_serie_3[nome_colonna_fine_serie1][0]
+            except:
+                fine_serie_3 = -1
+        fig, zoom_graf = plt.subplots(1, 1, sharex=True, sharey=True)
+        zoom_graf.scatter(matrice[scelta_x1][start_serie1:fine_serie_1], matrice[scelta_y1][start_serie1:fine_serie_1],
+                          alpha=0.4, marker='.')
+        zoom_graf.scatter(matrice[scelta_x2][start_serie2:fine_serie_2], matrice[scelta_y2][start_serie2:fine_serie_2],
+                          alpha=0.4, marker='.')
+        if scelta_num_confronti == 3:
+            zoom_graf.scatter(matrice[scelta_x3][start_serie3:fine_serie_3],
+                              matrice[scelta_y3][start_serie3:fine_serie_3],
+                              alpha=0.4, marker='.')
+        plt.show()
+
+
+    # Classe per il pulsante custom ispeziona
+    class PulsanteIspeziona(ToolToggleBase):
+        image = r"ispeziona.png"
+        description = 'Seleziona un grafico da isolare'
+        default_toggled = False
+
+        def enable(self, event=None):
+            print("Pronto")
+            mplcursors.cursor().remove()
+            self.mouse_clikkato_id = fig.canvas.mpl_connect('button_press_event', ispezionaAzione)
+
+        def disable(self, event=None):
+            print("No")
+            fig.canvas.mpl_disconnect(self.mouse_clikkato_id)
+
+
+    # Toolmanager, inserisci il botone
+    tm = fig.canvas.manager.toolmanager
+    tm.add_tool("ispeziona", PulsanteIspeziona)
+    fig.canvas.manager.toolbar.add_tool(tm.get_tool("ispeziona"), "toolgroup")
+
     plt.show()
 
 
