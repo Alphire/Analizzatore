@@ -346,9 +346,9 @@ def confrontaSerieMultiple(serie, labels_dati):
         )
 
 
-    # TOFIX: la serie 3 ispezionata non è corretta: aggiunge punti in mesi sbalgiati
     # TODO: Inserire anche qua la nota delle date
     def ispezionaAzione(event):
+        # Preparazione dati ed indici per il grafico
         collezzioni_presenti = event.inaxes.collections
         start_serie1 = finale_serie_1[collezzioni_presenti[0]][0]
         start_serie2 = finale_serie_2[collezzioni_presenti[1]][0]
@@ -368,9 +368,10 @@ def confrontaSerieMultiple(serie, labels_dati):
             try:
                 nome_colonna_fine_serie3 = finale_serie_3.columns[
                     finale_serie_3.columns.get_loc(collezzioni_presenti[2]) + 1]
-                fine_serie_3 = finale_serie_3[nome_colonna_fine_serie1][0]
+                fine_serie_3 = finale_serie_3[nome_colonna_fine_serie3][0]
             except:
                 fine_serie_3 = -1
+        # DIsegna il grafico
         fig, zoom_graf = plt.subplots(1, 1, sharex=True, sharey=True)
         zoom_graf.scatter(matrice[scelta_x1][start_serie1:fine_serie_1], matrice[scelta_y1][start_serie1:fine_serie_1],
                           alpha=0.4, marker='.')
@@ -380,6 +381,14 @@ def confrontaSerieMultiple(serie, labels_dati):
             zoom_graf.scatter(matrice[scelta_x3][start_serie3:fine_serie_3],
                               matrice[scelta_y3][start_serie3:fine_serie_3],
                               alpha=0.4, marker='.')
+        # Per visualizzare il mese come titolo grafico
+        mese_selezionato = matrice['Data di ' + scelta_x1][start_serie1][5:7]
+        for i in range(len(nome_mesi)):
+            if int(mese_selezionato) == i:
+                mese_titolo = nome_mesi[i-1]
+
+        zoom_graf.set_title(mese_titolo)
+        plt.grid()
         plt.show()
 
 
