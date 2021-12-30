@@ -3,6 +3,7 @@ import math
 import os
 import os.path
 import random
+import select
 
 import matplotlib.artist
 import pandas as pd
@@ -340,13 +341,11 @@ def confrontaSerieMultiple(serie, labels_dati):
                 f'x: {matrice[scelta_x3][sel.index + finale_serie_3[sel.artist][0]]}  y: {matrice[scelta_y3][sel.index + finale_serie_3[sel.artist][0]]}'
             )
 
-
-    mplcursors.cursor().connect(
-        "add", lambda sel: connessione_serie(sel)
-        )
+    annotazioni_principali = mplcursors.cursor(fig)
+    annotazioni_principali.connect("add", lambda  sel: connessione_serie(sel))
 
 
-    # TODO: Inserire anche qua la nota delle date
+
     def ispezionaAzione(event):
         # Preparazione dati ed indici per il grafico
         collezzioni_presenti = event.inaxes.collections
@@ -384,10 +383,41 @@ def confrontaSerieMultiple(serie, labels_dati):
         # Per visualizzare il mese come titolo grafico
         mese_selezionato = matrice['Data di ' + scelta_x1][start_serie1][5:7]
         for i in range(len(nome_mesi)):
-            if int(mese_selezionato) == i:
-                mese_titolo = nome_mesi[i-1]
+            if int(mese_selezionato) - 1 == i:
+                mese_titolo = nome_mesi[i]
+
 
         zoom_graf.set_title(mese_titolo)
+
+        def connessione_serie_graf_zoom(sel):
+            if sel.artist == zoom_graf.collections[0]:
+                sel.annotation.get_bbox_patch().set(fc="blue")
+                sel.annotation.set_text(
+                    f'Data: {trasformaData(matrice["Data di " + scelta_y1][sel.index + start_serie1])[:10]} ore:'
+                    f'{trasformaData(matrice["Data di " + scelta_y1][sel.index + start_serie1])[-8:-3]}\n'
+                    f'x: {matrice[scelta_x1][sel.index + start_serie1]}  y: {matrice[scelta_y1][sel.index + start_serie1]}'
+                )
+            elif sel.artist == zoom_graf.collections[1]:
+                sel.annotation.get_bbox_patch().set(fc="orange")
+                sel.annotation.set_text(
+                    f'Data: {trasformaData(matrice["Data di " + scelta_y2][sel.index + start_serie2])[:10]} ore:'
+                    f'{trasformaData(matrice["Data di " + scelta_y2][sel.index + start_serie2])[-8:-3]}\n'
+                    f'x: {matrice[scelta_x2][sel.index + start_serie2]}  y: {matrice[scelta_y2][sel.index + start_serie2]}'
+                )
+            if scelta_num_confronti == 3:
+                if sel.artist == zoom_graf.collections[2]:
+                    sel.annotation.get_bbox_patch().set(fc="green")
+                    sel.annotation.set_text(
+                        f'Data: {trasformaData(matrice["Data di " + scelta_y3][sel.index + start_serie3])[:10]} ore:'
+                        f'{trasformaData(matrice["Data di " + scelta_y3][sel.index + start_serie3])[-8:-3]}\n'
+                        f'x: {matrice[scelta_x3][sel.index + start_serie3]}  y: {matrice[scelta_y3][sel.index + start_serie3]}'
+                    )
+
+        annotazioni_graf_zoom = mplcursors.cursor(zoom_graf)
+        annotazioni_graf_zoom.connect(
+            "add", lambda sel: connessione_serie_graf_zoom(sel)
+        )
+
         plt.grid()
         plt.show()
 
@@ -399,12 +429,9 @@ def confrontaSerieMultiple(serie, labels_dati):
         default_toggled = False
 
         def enable(self, event=None):
-            print("Pronto")
-            mplcursors.cursor().remove()
             self.mouse_clikkato_id = fig.canvas.mpl_connect('button_press_event', ispezionaAzione)
 
         def disable(self, event=None):
-            print("No")
             fig.canvas.mpl_disconnect(self.mouse_clikkato_id)
 
 
@@ -461,7 +488,7 @@ def starter(autoinserimento):
 
 
 if __name__ == "__main__":
-    versione("0.0.9", "09/12/2021")
+    versione("0.0.9", "30/12/2021")
     print("_" * 110)
     print(Back.WHITE + Fore.BLACK + "\n"    
             "#####                                                         ##### \n"
