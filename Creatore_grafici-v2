@@ -32,6 +32,7 @@ nome_mesi = ['Gennaio',
         'Novembre',
         'Dicembre']
 
+
 '''Settings per i colori dell'output'''
 class bcolors:
     HEADER = Fore.LIGHTYELLOW_EX
@@ -56,6 +57,7 @@ def trasformaData(data_originale):
     anno = data[:4]
     data_finale = giorno + '-' + mese + '-' + anno + data_originale[-9:]
     return data_finale
+
 
 '''Dividi file csv in anni'''
 def dividi_in_anni(dati, targa):
@@ -178,6 +180,7 @@ def confrontaSerieMultiple(serie, labels_dati):
     # Scelta dei dati da plottare
     for i in range(len(labels_dati)):
         print(bcolors.HEADER + "#" + str(i + 1) + f" = {labels_dati[i]}" + bcolors.ENDC)
+    print(Style.RESET_ALL)
     scelta_num_confronti = int(input(bcolors.HEADER + "Quante serie vuoi inserire? 2 o 3? " +bcolors.ENDC))
     scelta_x1 = str(input(
         bcolors.HEADER + "SETTAGGIO DI X1 --> Inserisci il numero identificativo del set di dati da utilizzare: "
@@ -307,7 +310,7 @@ def confrontaSerieMultiple(serie, labels_dati):
         finale_serie_3.columns = artisti_serie3
 
 
-    ''' Per aggiungere le annotazioni ai pnti delle serie '''
+    ''' Per aggiungere le annotazioni ai punti delle serie '''
     def connessione_serie(sel):
         finali_serie = [finale_serie_1,finale_serie_2]
         if scelta_num_confronti == 3:
@@ -455,9 +458,6 @@ def autoInserimentoDati():
 
 
 def starter(autoinserimento):
-    tipo_metodi = ["Matrice (premi 'm')", "Analizzatore (premi 'a')",
-                   "Permutazioni (premi 'p')","Stesse x, diverse y (premi 'z')",
-                                              "Divivi file csv in anni (premi 'd')"]
     flag_inserisci_file = 0
     dati = []
     labels_dati = []
@@ -483,12 +483,11 @@ def starter(autoinserimento):
             else:
                 flag_inserisci_file = 1
     confronta_tempi(dati)
-    # Scelta del metodo
     confrontaSerieMultiple(dati, labels_dati)
 
 
 if __name__ == "__main__":
-    versione("0.0.9", "30/12/2021")
+    versione("0.1.0", "30/12/2021")
     print("_" * 110)
     print(Back.WHITE + Fore.BLACK + "\n"    
             "#####                                                         ##### \n"
