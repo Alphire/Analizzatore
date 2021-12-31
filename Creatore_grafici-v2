@@ -12,7 +12,6 @@ plt.rcParams["toolbar"] = "toolmanager"
 from matplotlib.widgets import Slider, Button, RadioButtons
 from matplotlib.backend_tools import ToolBase, ToolToggleBase
 import numpy as np
-import seaborn as sn
 import  time
 from sklearn.linear_model import BayesianRidge
 from colorama import init ,Fore, Back, Style
