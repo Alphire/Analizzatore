@@ -388,30 +388,57 @@ def confrontaSerieMultiple(serie, labels_dati):
 
         # TODO: slider per la scelta della data.
         plt.subplots_adjust(bottom=0.25)
-        ax_slider = plt.axes([0.25, 0.1, 0.65, 0.03])
-        # TOFIX: Dicemre ha problemi
-        slider_controllo_data = Slider(ax=ax_slider, label='Scelta data serie 1',
-                                       valmin=int(trasformaData(matrice["Data di " + scelta_y1][start_serie1])[:2]),
+        ax_slider_serie1 = plt.axes([0.25, 0.1, 0.65, 0.03])
+        # TOFIX: Dicembre ha problemi
+        slider_controllo_data_serie1 = Slider(ax=ax_slider_serie1, label='Scelta data',
+                                       valmin=0,
                                        valmax=int(trasformaData(matrice["Data di " + scelta_y1][fine_serie_1-1])[:2]),
-                                       valinit=1,
+                                       valinit=0,
                                        valstep=1)
         # Altrimenti non reagisce al mouse
-        sliders.append(slider_controllo_data)
-        linee = []
+        sliders.append(slider_controllo_data_serie1)
+        linee_serie_1, linee_serie_2, linee_serie_3 = [],[],[]
         def update_slider(val):
-            #print(matrice['Data di ' + scelta_y1][start_serie1 + ((val-1)*24) : start_serie1 + ((val-1)*24) + 24])
-            linea_giorno_serie1 = zoom_graf.plot(matrice[scelta_x1][start_serie1 + ((val-1)*24) : start_serie1 + ((val-1)*24) + 24],
-                           matrice[scelta_y1][start_serie1 + ((val-1)*24) : start_serie1 + ((val-1)*24) + 24],
-                           c='blue')
-            if len(linee)!=0:
-                tmp = linee[0].pop(0).remove
-                linee.pop(0)
+            if val == 0:
+                # Per non visualizzare le linee dei giorni se il giorno selezionato è 0
+                linea_giorno_serie1 = zoom_graf.plot([],[])
+                linea_giorno_serie2 = zoom_graf.plot([],[])
+                linea_giorno_serie3 = zoom_graf.plot([],[])
+            else:
+                #print(matrice['Data di ' + scelta_y1][start_serie1 + ((val-1)*24) : start_serie1 + ((val-1)*24) + 24])
+                linea_giorno_serie1 = zoom_graf.plot(matrice[scelta_x1][start_serie1 + ((val-1)*24) : start_serie1 + ((val-1)*24) + 24],
+                               matrice[scelta_y1][start_serie1 + ((val-1)*24) : start_serie1 + ((val-1)*24) + 24],
+                               c='blue')
+                linea_giorno_serie2 = zoom_graf.plot(
+                    matrice[scelta_x2][start_serie2 + ((val - 1) * 24): start_serie2 + ((val - 1) * 24) + 24],
+                    matrice[scelta_y2][start_serie2 + ((val - 1) * 24): start_serie2 + ((val - 1) * 24) + 24],
+                    c='orange')
+            if scelta_num_confronti == 3:
+                linea_giorno_serie3 = zoom_graf.plot(
+                    matrice[scelta_x3][start_serie3 + ((val - 1) * 24): start_serie3 + ((val - 1) * 24) + 24],
+                    matrice[scelta_y3][start_serie3 + ((val - 1) * 24): start_serie3 + ((val - 1) * 24) + 24],
+                    c='green')
+            if len(linee_serie_1)!=0:
+                linee_serie_1[0].pop(0).remove
+                linee_serie_1.pop(0)
                 zoom_graf.lines.pop(0)
-            linee.append(linea_giorno_serie1)
+            if len(linee_serie_2)!=0:
+                linee_serie_2[0].pop(0).remove
+                linee_serie_2.pop(0)
+                zoom_graf.lines.pop(0)
+            if scelta_num_confronti == 3:
+                if len(linee_serie_3)!=0:
+                    linee_serie_3[0].pop(0).remove
+                    linee_serie_3.pop(0)
+                    zoom_graf.lines.pop(0)
+            linee_serie_1.append(linea_giorno_serie1)
+            linee_serie_2.append(linea_giorno_serie2)
+            if scelta_num_confronti == 3:
+                linee_serie_3.append(linea_giorno_serie3)
             fig.canvas.draw()
             #fig.canvas.draw_idle()
 
-        slider_controllo_data.on_changed(update_slider)
+        slider_controllo_data_serie1.on_changed(update_slider)
         ''''''
 
         # Per visualizzare il mese come titolo grafico
@@ -529,7 +556,7 @@ def starter(autoinserimento):
 
 
 if __name__ == "__main__":
-    versione("0.1.0", "30/12/2021")
+    versione("0.1.0", "31/12/2021")
     print("_" * 110)
     print(Back.WHITE + Fore.BLACK + "\n"    
             "#####                                                         ##### \n"
