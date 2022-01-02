@@ -388,21 +388,32 @@ def confrontaSerieMultiple(serie, labels_dati):
         # TODO: slider per la scelta della data.
         plt.subplots_adjust(bottom=0.25)
         ax_slider_serie1 = plt.axes([0.25, 0.1, 0.65, 0.03])
-        # TOFIX: Dicembre ha problemi
-        slider_controllo_data_serie1 = Slider(ax=ax_slider_serie1, label='Scelta data',
-                                       valmin=0,
-                                       valmax=int(trasformaData(matrice["Data di " + scelta_y1][fine_serie_1-1])[:2]),
-                                       valinit=0,
-                                       valstep=1)
+        if fine_serie_1 != -1:
+            slider_controllo_data_serie1 = Slider(ax=ax_slider_serie1, label='Scelta data',
+                                           valmin=0,
+                                           valmax=int(trasformaData(matrice["Data di " + scelta_y1][fine_serie_1 - 1])[:2]),
+                                           valinit=0,
+                                           valstep=1)
+        # Per dicembre
+        else:
+            slider_controllo_data_serie1 = Slider(ax=ax_slider_serie1, label='Scelta data',
+                                                  valmin=0,
+                                                  valmax=int(31),
+                                                  valinit=0,
+                                                  valstep=1)
         # Altrimenti non reagisce al mouse
         sliders.append(slider_controllo_data_serie1)
         linee_serie_1, linee_serie_2, linee_serie_3 = [],[],[]
-        def update_slider(val):
+
+        def linee_dati_giornalieri(val):
+            # TOFIX: se cambia il valore dello slider troppo velocemente le linee non si aggiornano correttamente
+            # NOTA: credo che sia meglio cambiare il modo in cui elimino le linee.
             if val == 0:
                 # Per non visualizzare le linee dei giorni se il giorno selezionato è 0
                 linea_giorno_serie1 = zoom_graf.plot([],[])
                 linea_giorno_serie2 = zoom_graf.plot([],[])
                 linea_giorno_serie3 = zoom_graf.plot([],[])
+                fig.canvas.draw()
             else:
                 #print(matrice['Data di ' + scelta_y1][start_serie1 + ((val-1)*24) : start_serie1 + ((val-1)*24) + 24])
                 linea_giorno_serie1 = zoom_graf.plot(matrice[scelta_x1][start_serie1 + ((val-1)*24) : start_serie1 + ((val-1)*24) + 24],
@@ -434,10 +445,12 @@ def confrontaSerieMultiple(serie, labels_dati):
             linee_serie_2.append(linea_giorno_serie2)
             if scelta_num_confronti == 3:
                 linee_serie_3.append(linea_giorno_serie3)
+            # Per debuggare
+            #print(f'valore: {val}\n{matrice["Data di " + scelta_y1][start_serie1 + ((val-1)*24) : start_serie1 + ((val-1)*24) + 24]}')
             fig.canvas.draw()
             #fig.canvas.draw_idle()
 
-        slider_controllo_data_serie1.on_changed(update_slider)
+        slider_controllo_data_serie1.on_changed(linee_dati_giornalieri)
         ''''''
 
         # Per visualizzare il mese come titolo grafico
@@ -448,7 +461,7 @@ def confrontaSerieMultiple(serie, labels_dati):
 
 
         zoom_graf.set_title(mese_titolo)
-        plt.grid()
+        zoom_graf.grid()
 
         def connessione_serie_graf_zoom(sel):
             if sel.artist == zoom_graf.collections[0]:
@@ -458,17 +471,6 @@ def confrontaSerieMultiple(serie, labels_dati):
                     f'{trasformaData(matrice["Data di " + scelta_y1][sel.index + start_serie1])[-8:-3]}\n'
                     f'x: {matrice[scelta_x1][sel.index + start_serie1]}  y: {matrice[scelta_y1][sel.index + start_serie1]}'
                 )
-                '''# Evidenzia i punti del giorno selezionato
-                giorno_selezionato = int(trasformaData(matrice["Data di " + scelta_y1][sel.index + start_serie1])[:2])
-                ora_selezionata = int(trasformaData(matrice["Data di " + scelta_y1][sel.index + start_serie1])[-8:-6])
-                x_selezionate, y_selezionate = [],[]
-                x_selezionate.append(matrice[scelta_x1][sel.index + start_serie1 - ora_selezionata: sel.index +
-                                     start_serie1 + (24 - ora_selezionata)])
-                y_selezionate.append(matrice[scelta_y1][sel.index + start_serie1 - ora_selezionata : sel.index +
-                                     start_serie1 + (24 - ora_selezionata)])
-                # TOFIX: Non vedo niente, NOTA: non credo che possa funzionare implementato in questa maniera
-                # tuttavia sembra che il metodo funzioni per ricavare i dati
-                zoom_graf.plot(x_selezionate,y_selezionate)'''
             elif sel.artist == zoom_graf.collections[1]:
                 sel.annotation.get_bbox_patch().set(fc="orange")
                 sel.annotation.set_text(
@@ -551,11 +553,13 @@ def starter(autoinserimento):
             else:
                 flag_inserisci_file = 1
     confronta_tempi(dati)
-    confrontaSerieMultiple(dati, labels_dati)
+    # Loop principale
+    while True:
+        confrontaSerieMultiple(dati, labels_dati)
 
 
 if __name__ == "__main__":
-    versione("0.1.0", "31/12/2021")
+    versione("0.1.0", "02/01/2022")
     print("_" * 110)
     print(Back.WHITE + Fore.BLACK + "\n"    
             "#####                                                         ##### \n"
