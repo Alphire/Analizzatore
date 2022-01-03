@@ -4,6 +4,8 @@ import os
 import os.path
 import random
 import select
+import sys
+
 import matplotlib.artist
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -13,6 +15,7 @@ from matplotlib.widgets import Slider, Button, RadioButtons
 from matplotlib.backend_tools import ToolBase, ToolToggleBase
 import numpy as np
 import  time
+import keyboard
 from sklearn.linear_model import BayesianRidge
 from colorama import init ,Fore, Back, Style
 init()
@@ -238,6 +241,20 @@ def confrontaSerieMultiple(serie, labels_dati):
     mese_corrente = '02-01 00:00:00' # 2019-01-01 00:00:00
     fig, ax = plt.subplots(righe, colonne, sharex=True, sharey=True, constrained_layout=True)
 
+    '''File dove scrivere i calcoli'''
+    try:
+        percorso_per_file_data = os.mkdir(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data'))
+    except FileExistsError:
+        percorso_per_file_data = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
+    f = open(os.path.join(percorso_per_file_data,'Data'), 'w',newline='')
+    scrittore = csv.writer(f)
+    scrittore.writerow(['mese','differenza fra le medie della serie 1 e 2'])
+    if scelta_num_confronti == 3:
+        scrittore.writerow(['mese',
+                            'differenza fra le medie della serie 1 e 2',
+                            'differenza fra le medie della serie 1 e 3',
+                            'differenza fra le medie della serie 2 e 3'])
+
     artisti = []
     tmp_serie1, tmp_serie2, tmp_serie3 = [], [], []
     for r in range(righe):
@@ -268,9 +285,24 @@ def confrontaSerieMultiple(serie, labels_dati):
                              matrice[scelta_y1][start_serie1:indici_mese_corrente_serie1], alpha=0.4, marker='.')
             ax[r][c].scatter(matrice[scelta_x2][start_serie2:indici_mese_corrente_serie2],
                              matrice[scelta_y2][start_serie2:indici_mese_corrente_serie2], alpha=0.4, marker='.')
+            media_serie_1 = matrice[scelta_y1][start_serie1:indici_mese_corrente_serie1].mean(skipna=True)
+            media_serie_2 = matrice[scelta_y2][start_serie2:indici_mese_corrente_serie2].mean(skipna=True)
+            differenza_1_2 = media_serie_1 - media_serie_2
+            #differenza_1_2 = math.sqrt(pow(media_serie_1,2) + pow(media_serie_2,2))
+            scrittore.writerow([nome_mesi[contatore],differenza_1_2])
+
             if scelta_num_confronti == 3:
                 ax[r][c].scatter(matrice[scelta_x3][start_serie3:indici_mese_corrente_serie3],
                                  matrice[scelta_y3][start_serie3:indici_mese_corrente_serie3], alpha=0.4, marker='.')
+                media_serie_3 = matrice[scelta_y3][start_serie3:indici_mese_corrente_serie3].mean(skipna=True)
+                differenza_1_3 = media_serie_1 - media_serie_3
+                differenza_2_3 = media_serie_2 - media_serie_3
+                '''differenza_1_3 = math.sqrt(pow(media_serie_1,2) + pow(media_serie_3,2))
+                differenza_2_3 = math.sqrt(pow(media_serie_3, 2) + pow(media_serie_2, 2))'''
+                scrittore.writerow([nome_mesi[contatore],
+                                    differenza_1_2,
+                                    differenza_1_3,
+                                    differenza_2_3])
             ax[r][c].grid()
             ax[r][c].set_title(nome_mesi[contatore])
             contatore += 1
@@ -290,7 +322,7 @@ def confrontaSerieMultiple(serie, labels_dati):
                 mese_corrente = '0' + str(mese) + '-01 00:00:00'
             else:
                 mese_corrente = str(mese) + '-01 00:00:00'
-
+    f.close()
     ''' Preparazione per le annotazioni '''
     # Finale è la matrice che contiene gli indici finali di ogni mese per la serie con la relativa collezione
     # sel.artist = collezione
@@ -555,6 +587,7 @@ def starter(autoinserimento):
     confronta_tempi(dati)
     # Loop principale
     while True:
+        print(bcolors.WARNING +  'Se vuoi uscire premi "q"' + Style.RESET_ALL)
         confrontaSerieMultiple(dati, labels_dati)
 
 
